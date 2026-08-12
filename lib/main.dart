@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:project_tride/Views/halaman_register.dart';
+import 'package:project_tride/Views/halaman_beranda.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: HalamanRegister(),
+      home: HalamanBeranda(),
     );
   }
 }
