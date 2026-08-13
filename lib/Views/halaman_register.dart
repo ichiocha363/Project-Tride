@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:project_tride/Constants/app_colors.dart';
 import 'package:project_tride/Constants/app_typography.dart';
+import 'package:project_tride/Database/database_helper.dart';
+import 'package:project_tride/Models/user_model.dart';
 import 'package:project_tride/Views/halaman_login.dart';
 
 class HalamanRegister extends StatefulWidget {
@@ -14,8 +16,63 @@ class _HalamanRegisterState extends State<HalamanRegister> {
   final TextEditingController namaC = TextEditingController();
   final TextEditingController emailC = TextEditingController();
   final TextEditingController passwordC = TextEditingController();
+  final TextEditingController confirmPasswordC = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool mata = false;
+  bool mataConfirm = false;
+
+  @override
+  void dispose() {
+    namaC.dispose();
+    emailC.dispose();
+    passwordC.dispose();
+    confirmPasswordC.dispose();
+    super.dispose();
+  }
+
+  void _register() async {
+    if (_formKey.currentState!.validate()) {
+      final newUser = UserModel(
+        nama: namaC.text.trim(),
+        email: emailC.text.trim(),
+        password: passwordC.text,
+      );
+
+      final result = await DatabaseHelper.instance.registerUser(newUser);
+
+      if (!mounted) return;
+
+      if (result == -1) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Email sudah terdaftar! Gunakan email lain."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } else if (result > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Registrasi berhasil! Silakan masuk."),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const HalamanLogin(),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Registrasi gagal. Silakan coba lagi."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,19 +81,19 @@ class _HalamanRegisterState extends State<HalamanRegister> {
           padding: const EdgeInsets.only(top: 40, left: 30, right: 30),
           child: Column(
             children: [
-              Image(
+              const Image(
                 image: AssetImage('assets/image/playstore.png'),
                 height: 70,
                 width: 70,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Text("Buat Akun baru", style: AppTypography.displayLarge),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Text(
                 "Mulai perjalananmu bersama Tride hari ini",
                 style: AppTypography.bodyLarge,
               ),
-              SizedBox(height: 50),
+              const SizedBox(height: 50),
               Form(
                 key: _formKey,
                 child: Column(
@@ -47,16 +104,13 @@ class _HalamanRegisterState extends State<HalamanRegister> {
                       ],
                     ),
                     TextFormField(
+                      controller: namaC,
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Email tidak boleh kosong";
-                        } else if (!value.contains('@')) {
-                          return "Email tidak valid";
+                        if (value == null || value.trim().isEmpty) {
+                          return "Nama lengkap tidak boleh kosong";
                         }
                         return null;
                       },
-
-                      controller: emailC,
                       style: const TextStyle(color: Colors.black),
                       decoration: const InputDecoration(
                         prefixIcon: Icon(Icons.person),
@@ -64,21 +118,20 @@ class _HalamanRegisterState extends State<HalamanRegister> {
                         hintStyle: TextStyle(color: Colors.black),
                       ),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Row(
                       children: [Text("Email", style: AppTypography.bodyLarge)],
                     ),
                     TextFormField(
+                      controller: emailC,
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
+                        if (value == null || value.trim().isEmpty) {
                           return "Email tidak boleh kosong";
                         } else if (!value.contains('@')) {
                           return "Email tidak valid";
                         }
                         return null;
                       },
-
-                      controller: emailC,
                       style: const TextStyle(color: Colors.black),
                       decoration: const InputDecoration(
                         prefixIcon: Icon(Icons.email_outlined),
@@ -86,13 +139,15 @@ class _HalamanRegisterState extends State<HalamanRegister> {
                         hintStyle: TextStyle(color: Colors.black),
                       ),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Row(
                       children: [
                         Text("Password", style: AppTypography.bodyLarge),
                       ],
                     ),
                     TextFormField(
+                      controller: passwordC,
+                      obscureText: !mata,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return "Password tidak boleh kosong";
@@ -101,13 +156,11 @@ class _HalamanRegisterState extends State<HalamanRegister> {
                         }
                         return null;
                       },
-                      controller: passwordC,
-                      obscureText: mata,
                       style: const TextStyle(color: Colors.black),
                       decoration: InputDecoration(
-                        prefixIcon: Icon(Icons.key),
-                        hintText: 'masukan kata sandi',
-                        hintStyle: TextStyle(color: Colors.black),
+                        prefixIcon: const Icon(Icons.key),
+                        hintText: 'Masukkan kata sandi',
+                        hintStyle: const TextStyle(color: Colors.black),
                         suffixIcon: IconButton(
                           onPressed: () {
                             setState(() {
@@ -115,48 +168,46 @@ class _HalamanRegisterState extends State<HalamanRegister> {
                             });
                           },
                           icon: Icon(
-                            mata ? Icons.visibility_off : Icons.visibility,
+                            mata ? Icons.visibility : Icons.visibility_off,
                           ),
                         ),
                       ),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Row(
                       children: [
                         Text("Ulangi Password", style: AppTypography.bodyLarge),
                       ],
                     ),
                     TextFormField(
+                      controller: confirmPasswordC,
+                      obscureText: !mataConfirm,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return "Password tidak boleh kosong";
-                        } else if (value.length < 8) {
-                          return "Password kurang dari 8 karakter";
-                        } else if (value == passwordC) {
-                          return "Password tidak sesuai";
+                          return "Ulangi password tidak boleh kosong";
+                        } else if (value != passwordC.text) {
+                          return "Password tidak cocok";
                         }
                         return null;
                       },
-                      controller: passwordC,
-                      obscureText: mata,
                       style: const TextStyle(color: Colors.black),
                       decoration: InputDecoration(
-                        prefixIcon: Icon(Icons.key_outlined),
+                        prefixIcon: const Icon(Icons.key_outlined),
                         hintText: 'Ulangi Password',
-                        hintStyle: TextStyle(color: Colors.black),
+                        hintStyle: const TextStyle(color: Colors.black),
                         suffixIcon: IconButton(
                           onPressed: () {
                             setState(() {
-                              mata = !mata;
+                              mataConfirm = !mataConfirm;
                             });
                           },
                           icon: Icon(
-                            mata ? Icons.visibility_off : Icons.visibility,
+                            mataConfirm ? Icons.visibility : Icons.visibility_off,
                           ),
                         ),
                       ),
                     ),
-                    SizedBox(height: 40),
+                    const SizedBox(height: 40),
                     SizedBox(
                       height: 50,
                       width: 300,
@@ -166,44 +217,39 @@ class _HalamanRegisterState extends State<HalamanRegister> {
                             AppColors.primary,
                           ),
                         ),
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            // login();
-                          }
-                        },
-                        child: Row(
+                        onPressed: _register,
+                        child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'Masuk',
+                              'Daftar',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
                               ),
                             ),
+                            SizedBox(width: 8),
                             Icon(Icons.arrow_forward, color: Colors.white),
                           ],
                         ),
                       ),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "Sudah punya akun",
+                          "Sudah punya akun? ",
                           style: AppTypography.bodyLarge,
                         ),
                         TextButton(
                           onPressed: () {
-                            setState(() {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => HalamanLogin(),
-                                ),
-                              );
-                            });
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const HalamanLogin(),
+                              ),
+                            );
                           },
                           child: Text("Masuk", style: AppTypography.bodyLarge),
                         ),

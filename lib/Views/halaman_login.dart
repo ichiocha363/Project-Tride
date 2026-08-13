@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:project_tride/Constants/app_colors.dart';
 import 'package:project_tride/Constants/app_typography.dart';
+import 'package:project_tride/Database/database_helper.dart';
+import 'package:project_tride/Views/halaman_beranda.dart';
 import 'package:project_tride/Views/halaman_register.dart';
 
 class HalamanLogin extends StatefulWidget {
@@ -17,6 +19,46 @@ class _HalamanLoginState extends State<HalamanLogin> {
   bool mata = false;
 
   @override
+  void dispose() {
+    emailC.dispose();
+    passwordC.dispose();
+    super.dispose();
+  }
+
+  void _login() async {
+    if (_formKey.currentState!.validate()) {
+      final user = await DatabaseHelper.instance.loginUser(
+        emailC.text.trim(),
+        passwordC.text,
+      );
+
+      if (!mounted) return;
+
+      if (user != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Selamat datang kembali, ${user.nama}!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HalamanBeranda(user: user),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Email atau password salah!"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SingleChildScrollView(
@@ -25,19 +67,19 @@ class _HalamanLoginState extends State<HalamanLogin> {
             padding: const EdgeInsets.only(top: 70, left: 30, right: 30),
             child: Column(
               children: [
-                Image(
+                const Image(
                   image: AssetImage('assets/image/playstore.png'),
                   height: 70,
                   width: 70,
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Text("Masuk ke Tride", style: AppTypography.displayLarge),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text(
                   "Mulai petualanganmu hari ini",
                   style: AppTypography.bodyLarge,
                 ),
-                SizedBox(height: 30),
+                const SizedBox(height: 30),
                 Form(
                   key: _formKey,
                   child: Column(
@@ -48,16 +90,15 @@ class _HalamanLoginState extends State<HalamanLogin> {
                         ],
                       ),
                       TextFormField(
+                        controller: emailC,
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
+                          if (value == null || value.trim().isEmpty) {
                             return "Email tidak boleh kosong";
                           } else if (!value.contains('@')) {
                             return "Email tidak valid";
                           }
                           return null;
                         },
-
-                        controller: emailC,
                         style: const TextStyle(color: Colors.black),
                         decoration: const InputDecoration(
                           prefixIcon: Icon(Icons.email_outlined),
@@ -65,13 +106,15 @@ class _HalamanLoginState extends State<HalamanLogin> {
                           hintStyle: TextStyle(color: Colors.black),
                         ),
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Row(
                         children: [
                           Text("Password", style: AppTypography.bodyLarge),
                         ],
                       ),
                       TextFormField(
+                        controller: passwordC,
+                        obscureText: !mata,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return "Password tidak boleh kosong";
@@ -80,13 +123,11 @@ class _HalamanLoginState extends State<HalamanLogin> {
                           }
                           return null;
                         },
-                        controller: passwordC,
-                        obscureText: mata,
                         style: const TextStyle(color: Colors.black),
                         decoration: InputDecoration(
-                          prefixIcon: Icon(Icons.email_outlined),
-                          hintText: 'masukan kata sandi',
-                          hintStyle: TextStyle(color: Colors.black),
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          hintText: 'Masukkan kata sandi',
+                          hintStyle: const TextStyle(color: Colors.black),
                           suffixIcon: IconButton(
                             onPressed: () {
                               setState(() {
@@ -94,12 +135,12 @@ class _HalamanLoginState extends State<HalamanLogin> {
                               });
                             },
                             icon: Icon(
-                              mata ? Icons.visibility_off : Icons.visibility,
+                              mata ? Icons.visibility : Icons.visibility_off,
                             ),
                           ),
                         ),
                       ),
-                      Row(
+                      const Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Text(
@@ -108,7 +149,7 @@ class _HalamanLoginState extends State<HalamanLogin> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 40),
+                      const SizedBox(height: 40),
                       SizedBox(
                         height: 50,
                         width: 300,
@@ -118,12 +159,8 @@ class _HalamanLoginState extends State<HalamanLogin> {
                               AppColors.primary,
                             ),
                           ),
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              // login();
-                            }
-                          },
-                          child: Row(
+                          onPressed: _login,
+                          child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
@@ -133,13 +170,14 @@ class _HalamanLoginState extends State<HalamanLogin> {
                                   fontSize: 20,
                                 ),
                               ),
+                              SizedBox(width: 8),
                               Icon(Icons.arrow_forward, color: Colors.white),
                             ],
                           ),
                         ),
                       ),
-                      SizedBox(height: 30),
-                      Row(
+                      const SizedBox(height: 30),
+                      const Row(
                         children: [
                           Expanded(child: Divider(color: Colors.grey)),
                           Padding(
@@ -149,39 +187,37 @@ class _HalamanLoginState extends State<HalamanLogin> {
                           Expanded(child: Divider(color: Colors.grey)),
                         ],
                       ),
-                      SizedBox(height: 40),
+                      const SizedBox(height: 40),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Image(
+                          const Image(
                             image: AssetImage('assets/image/google.png'),
                             height: 30,
                             width: 30,
                           ),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Text(
                             "Masuk dengan Google",
                             style: AppTypography.bodyLarge,
                           ),
                         ],
                       ),
-                      SizedBox(height: 150),
+                      const SizedBox(height: 80),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text("Belum punya akun?"),
+                          const Text("Belum punya akun? "),
                           TextButton(
                             onPressed: () {
-                              setState(() {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => HalamanRegister(),
-                                  ),
-                                );
-                              });
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const HalamanRegister(),
+                                ),
+                              );
                             },
-                            child: Text("Daftar"),
+                            child: const Text("Daftar"),
                           ),
                         ],
                       ),
