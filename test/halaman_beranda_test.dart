@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:project_tride/Models/user_model.dart';
-import 'package:project_tride/Views/halaman_beranda.dart';
+import 'package:project_tride/Views/halaman beranda/halaman_beranda.dart';
 
 void main() {
   testWidgets('HalamanBeranda renders all sections correctly',

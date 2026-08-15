@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:project_tride/Models/user_model.dart';
-import 'package:project_tride/Views/halaman_budget.dart';
+import 'package:project_tride/Views/halaman budget/halaman_budget.dart';
 
 void main() {
   testWidgets(
@@ -17,29 +17,25 @@ void main() {
       await tester.pumpWidget(MaterialApp(home: HalamanBudget(user: user)));
 
       // Header & Titles
-      expect(find.text('Tride'), findsOneWidget);
-      expect(find.text('Budget Trip'), findsOneWidget);
-      expect(find.text('Kelola pengeluaran perjalanan Anda'), findsOneWidget);
+      expect(find.text('Trips'), findsWidgets);
+      expect(find.text('TRAVEL JOURNAL'), findsOneWidget);
+      expect(find.text('Kyoto Getaway'), findsOneWidget);
 
       // Summary Card Details
-      expect(find.text('Total Budget'), findsOneWidget);
-      expect(find.text('Rp 5.000.000'), findsOneWidget);
-      expect(find.text('Rp 3.5M Sisa'), findsOneWidget);
-      expect(find.text('Terpakai'), findsOneWidget);
-      expect(find.text('Tersedia'), findsOneWidget);
+      expect(find.text('TOTAL TRIP BUDGET'), findsOneWidget);
+      expect(find.text('\$2,000'), findsOneWidget);
+      expect(find.text('REMAINING'), findsOneWidget);
+      expect(find.text('\$760'), findsOneWidget);
 
-      // Category Grid Items
-      expect(find.text('Kategori'), findsOneWidget);
-      expect(find.text('Transportasi'), findsWidgets);
-      expect(find.text('Akomodasi'), findsWidgets);
-      expect(find.text('Makanan'), findsWidgets);
-      expect(find.text('Wisata'), findsOneWidget);
+      // Category / Spending Highlights
+      expect(find.text('Spending Highlights'), findsOneWidget);
+      expect(find.text('Lodging'), findsWidgets);
+      expect(find.text('Dining'), findsWidgets);
+      expect(find.text('Transit'), findsWidgets);
 
-      // Recent Expenses
-      expect(find.text('Pengeluaran Terakhir'), findsOneWidget);
-      expect(find.text('Makan Siang'), findsOneWidget);
-      expect(find.text('Tiket Pesawat'), findsOneWidget);
-      expect(find.text('DP Hotel'), findsOneWidget);
+      // Recent Memories
+      expect(find.text('Recent Memories'), findsOneWidget);
+      expect(find.text('Ichiran Ramen'), findsOneWidget);
 
       // FAB Button & Modal Test
       expect(find.byType(FloatingActionButton), findsOneWidget);

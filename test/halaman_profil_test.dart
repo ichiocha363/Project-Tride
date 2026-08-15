@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:project_tride/Models/user_model.dart';
-import 'package:project_tride/Views/halaman_profil.dart';
+import 'package:project_tride/Views/halaman profile/halaman_profil.dart';
 
 void main() {
   testWidgets(
@@ -15,56 +15,58 @@ void main() {
       );
 
       await tester.pumpWidget(MaterialApp(home: HalamanProfil(user: user)));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 500));
 
-      // App bar Title
+      // App bar Title Badge
       expect(find.text('Tride'), findsOneWidget);
 
       // User Information
       expect(find.text('Andi Setiawan'), findsOneWidget);
       expect(find.text('andi@email.com'), findsOneWidget);
 
-      // Traveler Level Badge & Progress
-      expect(find.text('Explorer'), findsOneWidget);
-      expect(find.text('Level 4'), findsOneWidget);
-      expect(find.text('850 / 1200 pts to Globetrotter'), findsOneWidget);
+      // Explorer Subtitle
+      expect(find.text('Explorer Level 4'), findsOneWidget);
+      expect(find.text("Member '21"), findsOneWidget);
 
-      // Traveler Stats Card
-      expect(find.text('Total Trips'), findsOneWidget);
-      expect(find.text('12'), findsOneWidget);
-      expect(find.text('Destinations'), findsOneWidget);
+      // Airy Traveler Stats Row
+      expect(find.text('14'), findsOneWidget);
+      expect(find.text('TRIPS'), findsOneWidget);
       expect(find.text('8'), findsOneWidget);
-      expect(find.text('Saved Places'), findsOneWidget);
-      expect(find.text('24'), findsOneWidget);
+      expect(find.text('COUNTRIES'), findsOneWidget);
+      expect(find.text('24k'), findsOneWidget);
+      expect(find.text('MILES'), findsOneWidget);
 
-      // Achievements Section
-      expect(find.text('Achievements'), findsOneWidget);
-      expect(find.text('View All'), findsOneWidget);
-      expect(find.text('Frequent Flyer'), findsOneWidget);
-      expect(find.text('3'), findsOneWidget);
-      expect(find.text('Nature Lover'), findsOneWidget);
+      // Journey Highlights Section & Milestones
+      expect(find.text('Journey Highlights'), findsOneWidget);
+      expect(find.text('First Solo Trip'), findsOneWidget);
+      expect(find.text('Patagonia, Argentina • Oct 2022'), findsOneWidget);
+      expect(find.text('Eco Traveler Certified'), findsOneWidget);
+      expect(find.text('Offset 10,000 miles • Mar 2023'), findsOneWidget);
+      expect(find.text('Peak Bagger'), findsOneWidget);
+      expect(find.text('Mt. Fuji Summit • Aug 2023'), findsOneWidget);
 
-      // Menu List
-      expect(find.text('Perjalanan Saya'), findsOneWidget);
-      expect(find.text('Favorites'), findsOneWidget);
+      // Preferences Section Menu
+      expect(find.text('Preferences'), findsOneWidget);
+      expect(find.text('Personal Info'), findsOneWidget);
+      expect(find.text('Payment Methods'), findsOneWidget);
       expect(find.text('Notifications'), findsOneWidget);
-      expect(find.text('Settings'), findsOneWidget);
-      expect(find.text('Help Center'), findsOneWidget);
+      expect(find.text('App Settings'), findsOneWidget);
 
-      // Logout Button & Dialog Test
-      final logoutFinder = find.text('Logout');
+      // Logout / Sign Out Button & Dialog Test
+      final logoutFinder = find.text('SIGN OUT');
       expect(logoutFinder, findsOneWidget);
       await tester.ensureVisible(logoutFinder);
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(logoutFinder);
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.text('Konfirmasi Logout'), findsOneWidget);
       expect(
-        find.text('Apakah Anda yakin ingin keluar dari aplikasi?'),
+        find.text('Apakah Anda yakin ingin keluar dari aplikasi Tride?'),
         findsOneWidget,
       );
       expect(find.text('Batal'), findsOneWidget);
+      expect(find.text('Keluar'), findsOneWidget);
     },
   );
 }
