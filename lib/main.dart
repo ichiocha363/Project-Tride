@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:project_tride/Views/halaman_login.dart';
+import 'package:project_tride/Constants/app_theme.dart';
+import 'package:project_tride/Views/auth_gate.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,11 +15,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Tride App',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const HalamanLogin(),
+      theme: AppTheme.lightTheme,
+      home: const AuthGate(),
     );
   }
 }
+

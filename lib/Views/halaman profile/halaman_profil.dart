@@ -1,11 +1,13 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:project_tride/Models/user_model.dart';
+import 'package:project_tride/utils/session_manager.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman beranda/halaman_beranda.dart';
 import '../halaman budget/halaman_budget.dart';
 import '../halaman explore/halaman_jelajah.dart';
 import '../halaman_login.dart';
+import 'halaman_saved_places.dart';
 
 class HalamanProfil extends StatefulWidget {
   final UserModel? user;
@@ -64,10 +66,11 @@ class _HalamanProfilState extends State<HalamanProfil>
             child: const Text("Batal"),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushAndRemoveUntil(
-                context,
+            onPressed: () async {
+              final nav = Navigator.of(context);
+              nav.pop();
+              await SessionManager.clearSession();
+              nav.pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const HalamanLogin()),
                 (route) => false,
               );
@@ -527,6 +530,43 @@ class _HalamanProfilState extends State<HalamanProfil>
                                 icon: Icons.person_outline_rounded,
                                 title: "Personal Info",
                                 onTap: () {},
+                              ),
+                              const Divider(
+                                height: 1,
+                                indent: 56,
+                                endIndent: 16,
+                                color: surfaceVariant,
+                              ),
+                              _buildPreferenceTile(
+                                icon: Icons.favorite_border_rounded,
+                                title: "Saved Places",
+                                trailing: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: primaryBlue.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    "8 places",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: primaryBlue,
+                                    ),
+                                  ),
+                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          HalamanSavedPlaces(user: widget.user),
+                                    ),
+                                  );
+                                },
                               ),
                               const Divider(
                                 height: 1,

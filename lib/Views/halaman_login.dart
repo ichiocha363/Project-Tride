@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:project_tride/Database/database_helper.dart';
 import 'package:project_tride/Views/halaman beranda/halaman_beranda.dart';
 import 'package:project_tride/Views/halaman_register.dart';
+import 'package:project_tride/utils/session_manager.dart';
 
 class HalamanLogin extends StatefulWidget {
   const HalamanLogin({super.key});
@@ -43,6 +44,11 @@ class _HalamanLoginState extends State<HalamanLogin> {
       });
 
       if (user != null) {
+        if (user.id != null) {
+          await SessionManager.saveSession(user.id!);
+        }
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(

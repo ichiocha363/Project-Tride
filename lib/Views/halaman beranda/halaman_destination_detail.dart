@@ -4,6 +4,7 @@ import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman budget/halaman_budget.dart';
 import '../halaman explore/halaman_jelajah.dart';
 import '../halaman profile/halaman_profil.dart';
+import '../halaman profile/halaman_saved_places.dart';
 import 'halaman_beranda.dart';
 
 class HalamanDestinationDetail extends StatefulWidget {
@@ -357,43 +358,77 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
                     ),
                   ),
 
-                  // Bookmark Button
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isBookmarked = !_isBookmarked;
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            _isBookmarked
-                                ? '${widget.destinationTitle} disimpan ke favorit'
-                                : '${widget.destinationTitle} dihapus dari favorit',
+                  Row(
+                    children: [
+                      // Love Favorite Button
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  HalamanSavedPlaces(user: widget.user),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              width: 1,
+                            ),
                           ),
-                          duration: const Duration(seconds: 2),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.35),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          width: 1,
+                          child: const Icon(
+                            Icons.favorite_rounded,
+                            color: Colors.redAccent,
+                            size: 22,
+                          ),
                         ),
                       ),
-                      child: Icon(
-                        _isBookmarked
-                            ? Icons.bookmark_rounded
-                            : Icons.bookmark_border_rounded,
-                        color: _isBookmarked ? warmYellow : Colors.white,
-                        size: 22,
+                      const SizedBox(width: 10),
+                      // Bookmark Button
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isBookmarked = !_isBookmarked;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                _isBookmarked
+                                    ? '${widget.destinationTitle} disimpan ke favorit'
+                                    : '${widget.destinationTitle} dihapus dari favorit',
+                              ),
+                              duration: const Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              width: 1,
+                            ),
+                          ),
+                          child: Icon(
+                            _isBookmarked
+                                ? Icons.bookmark_rounded
+                                : Icons.bookmark_border_rounded,
+                            color: _isBookmarked ? warmYellow : Colors.white,
+                            size: 22,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),

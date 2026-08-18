@@ -4,6 +4,7 @@ import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman budget/halaman_budget.dart';
 import '../halaman explore/halaman_jelajah.dart';
 import '../halaman profile/halaman_profil.dart';
+import '../halaman profile/halaman_saved_places.dart';
 import 'halaman_destination_search.dart';
 import 'halaman_destination_detail.dart';
 import 'halaman_trip_detail.dart';
@@ -168,6 +169,33 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
               ],
             ),
             actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            HalamanSavedPlaces(user: widget.user),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: primaryBlue.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.favorite_rounded,
+                      color: Colors.redAccent,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
               Padding(
                 padding: const EdgeInsets.only(right: 20),
                 child: GestureDetector(
@@ -809,6 +837,15 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                                               );
                                             }
                                           });
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  HalamanSavedPlaces(
+                                                user: widget.user,
+                                              ),
+                                            ),
+                                          );
                                         },
                                         child: Container(
                                           padding: const EdgeInsets.all(8),

@@ -38,6 +38,7 @@ dependencies:
   sqflite: ^2.4.1
   path: ^1.9.1
   animated_bottom_navigation_bar: ^1.4.1
+  shared_preferences: ^2.5.2
 
 dev_dependencies:
   flutter_test:
