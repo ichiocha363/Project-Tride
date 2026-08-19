@@ -1,13 +1,17 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:getwidget/getwidget.dart';
 import 'package:project_tride/Models/user_model.dart';
+import '../../Widgets/custom_floating_nav_bar.dart';
 import 'package:project_tride/utils/session_manager.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman beranda/halaman_beranda.dart';
 import '../halaman budget/halaman_budget.dart';
 import '../halaman explore/halaman_jelajah.dart';
 import '../halaman_login.dart';
+import 'halaman_personal_info.dart';
 import 'halaman_saved_places.dart';
+import 'package:project_tride/Database/user_model.dart' as db_user;
 
 class HalamanProfil extends StatefulWidget {
   final UserModel? user;
@@ -243,30 +247,23 @@ class _HalamanProfilState extends State<HalamanProfil>
                             },
                           ),
 
-                          // Inner White Avatar Container
-                          Container(
-                            width: 112,
-                            height: 112,
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: bgSurface,
-                              shape: BoxShape.circle,
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(100),
+                          // Inner Avatar using GFAvatar with fallback
+                          GFAvatar(
+                            radius: 54,
+                            shape: GFAvatarShape.circle,
+                            child: ClipOval(
                               child: Image.network(
                                 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop',
+                                width: 108,
+                                height: 108,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: primaryBlue.withValues(alpha: 0.1),
-                                    child: const Icon(
-                                      Icons.person,
-                                      size: 56,
-                                      color: primaryBlue,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Image.asset(
+                                      'assets/image/playstore.png',
+                                      width: 108,
+                                      height: 108,
+                                      fit: BoxFit.cover,
                                     ),
-                                  );
-                                },
                               ),
                             ),
                           ),
@@ -529,7 +526,23 @@ class _HalamanProfilState extends State<HalamanProfil>
                               _buildPreferenceTile(
                                 icon: Icons.person_outline_rounded,
                                 title: "Personal Info",
-                                onTap: () {},
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => HalamanPersonalInfo(
+                                        user: widget.user != null
+                                            ? db_user.UserModel(
+                                                id: widget.user!.id,
+                                                nama: widget.user!.nama,
+                                                email: widget.user!.email,
+                                                password: widget.user!.password,
+                                              )
+                                            : null,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                               const Divider(
                                 height: 1,
@@ -549,8 +562,8 @@ class _HalamanProfilState extends State<HalamanProfil>
                                     color: primaryBlue.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Text(
-                                    "8 places",
+                                  child: const Text(
+                                    "0 places",
                                     style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -732,55 +745,10 @@ class _HalamanProfilState extends State<HalamanProfil>
         ],
       ),
 
-      // Integrated Bottom Navigation Bar
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.95),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: NavigationBar(
-          selectedIndex: 4,
-          onDestinationSelected: _onNavTapped,
-          backgroundColor: Colors.transparent,
-          indicatorColor: primaryBlue.withValues(alpha: 0.12),
-          elevation: 0,
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home_rounded, color: primaryBlue),
-              label: 'Home',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.explore_outlined),
-              selectedIcon: Icon(Icons.explore_rounded, color: primaryBlue),
-              label: 'Explore',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.luggage_outlined),
-              selectedIcon: Icon(Icons.luggage_rounded, color: primaryBlue),
-              label: 'Trips',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.account_balance_wallet_outlined),
-              selectedIcon: Icon(
-                Icons.account_balance_wallet_rounded,
-                color: primaryBlue,
-              ),
-              label: 'Budget',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded, color: primaryBlue),
-              label: 'Profile',
-            ),
-          ],
-        ),
+      // Integrated Floating Bottom Navigation Bar
+      bottomNavigationBar: CustomFloatingNavBar(
+        selectedIndex: 4,
+        onDestinationSelected: _onNavTapped,
       ),
     );
   }

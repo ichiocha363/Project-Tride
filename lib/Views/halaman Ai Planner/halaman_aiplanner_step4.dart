@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:getwidget/getwidget.dart';
 import 'package:project_tride/Models/user_model.dart';
 import '../halaman beranda/halaman_beranda.dart';
 import '../halaman budget/halaman_budget.dart';
@@ -728,71 +729,85 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                   itemCount: (_generatedItinerary!['schedule'] as List).length,
                   itemBuilder: (context, index) {
                     final dayItem = _generatedItinerary!['schedule'][index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF004AC6),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              dayItem['day'],
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: GFAccordion(
+                        titleChild: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF004AC6),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                dayItem['day'],
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  dayItem['title'],
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF0F172A),
-                                  ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                dayItem['title'],
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0F172A),
                                 ),
-                                const SizedBox(height: 6),
-                                ...((dayItem['activities'] as List).map(
-                                  (act) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 4),
-                                    child: Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.check_circle_outline_rounded,
-                                          size: 16,
-                                          color: Color(0xFF3E9C5D),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            act,
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.grey.shade700,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                )),
-                              ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                        contentChild: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            ...((dayItem['activities'] as List).map(
+                              (act) => Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle_outline_rounded,
+                                      size: 16,
+                                      color: Color(0xFF3E9C5D),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        act,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )),
+                          ],
+                        ),
+                        collapsedIcon: const Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Color(0xFF004AC6),
+                        ),
+                        expandedIcon: const Icon(
+                          Icons.keyboard_arrow_up,
+                          color: Color(0xFF004AC6),
+                        ),
+                        titlePadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                       ),
                     );
                   },

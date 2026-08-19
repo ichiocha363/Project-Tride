@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project_tride/Models/user_model.dart';
+import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman budget/halaman_budget.dart';
 import '../halaman explore/halaman_jelajah.dart';
@@ -478,50 +479,10 @@ class _HalamanDestinationSearchState extends State<HalamanDestinationSearch> {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.95),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentNavIndex,
-          onTap: _onNavTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: primaryBlue,
-          unselectedItemColor: outlineColor,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_rounded),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.explore_rounded),
-              label: 'Explore',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.luggage_rounded),
-              label: 'Trips',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.account_balance_wallet_rounded),
-              label: 'Budget',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              label: 'Profile',
-            ),
-          ],
-        ),
+      // Integrated Floating Bottom Navigation Bar
+      bottomNavigationBar: CustomFloatingNavBar(
+        selectedIndex: _currentNavIndex,
+        onDestinationSelected: _onNavTapped,
       ),
     );
   }

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:getwidget/getwidget.dart';
+import 'package:project_tride/Database/db_helper.dart';
+import 'package:project_tride/Database/favorite_model.dart';
 import 'package:project_tride/Models/user_model.dart';
+import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman budget/halaman_budget.dart';
 import '../halaman explore/halaman_jelajah.dart';
@@ -207,20 +211,21 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                       ),
                     );
                   },
-                  child: Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                        width: 1.5,
-                      ),
-                      image: const DecorationImage(
-                        image: NetworkImage(
-                          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop',
-                        ),
+                  child: GFAvatar(
+                    radius: 19,
+                    shape: GFAvatarShape.circle,
+                    child: ClipOval(
+                      child: Image.network(
+                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop',
+                        width: 38,
+                        height: 38,
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Image.asset(
+                          'assets/image/playstore.png',
+                          width: 38,
+                          height: 38,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                   ),
@@ -236,28 +241,36 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                 // Hero Section
                 Stack(
                   children: [
-                    Container(
+                    SizedBox(
                       height: 380,
                       width: double.infinity,
-                      decoration: const BoxDecoration(
-                        image: DecorationImage(
-                          image: NetworkImage(
-                            'https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=1000&auto=format&fit=crop',
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Image.network(
+                              'https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=1000&auto=format&fit=crop',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Image.asset(
+                                'assets/image/bali.jpeg',
+                                fit: BoxFit.cover,
+                              ),
+                            ),
                           ),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.1),
-                              Colors.black.withValues(alpha: 0.75),
-                            ],
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.black.withValues(alpha: 0.1),
+                                    Colors.black.withValues(alpha: 0.75),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                     Positioned(
@@ -825,28 +838,46 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                                     Align(
                                       alignment: Alignment.topRight,
                                       child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            if (isFav) {
-                                              _favoritedDestinations.remove(
-                                                item['id'],
-                                              );
-                                            } else {
-                                              _favoritedDestinations.add(
-                                                item['id'],
-                                              );
-                                            }
-                                          });
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  HalamanSavedPlaces(
-                                                user: widget.user,
-                                              ),
-                                            ),
-                                          );
-                                        },
+                                        onTap: () async {
+                                           final userId = widget.user?.id ?? 1;
+                                           final itemId = item['id'] as int;
+                                           setState(() {
+                                             if (isFav) {
+                                               _favoritedDestinations.remove(itemId);
+                                             } else {
+                                               _favoritedDestinations.add(itemId);
+                                             }
+                                           });
+                                           try {
+                                             if (isFav) {
+                                               await DbHelper.instance.removeFavorite(userId, itemId);
+                                               if (context.mounted) {
+                                                 GFToast.showToast(
+                                                   '${item['title']} dihapus dari Saved Places',
+                                                   context,
+                                                   toastPosition: GFToastPosition.BOTTOM,
+                                                   toastDuration: 1,
+                                                 );
+                                               }
+                                             } else {
+                                               await DbHelper.instance.addFavorite(
+                                                 FavoriteModel(
+                                                   userId: userId,
+                                                   destinationId: itemId,
+                                                   createdAt: DateTime.now().toIso8601String(),
+                                                 ),
+                                               );
+                                               if (context.mounted) {
+                                                 GFToast.showToast(
+                                                   '${item['title']} disimpan ke Saved Places!',
+                                                   context,
+                                                   toastPosition: GFToastPosition.BOTTOM,
+                                                   toastDuration: 1,
+                                                 );
+                                               }
+                                             }
+                                           } catch (_) {}
+                                         },
                                         child: Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
@@ -990,55 +1021,10 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
         ],
       ),
 
-      // Integrated Bottom Navigation Bar
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.95),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: NavigationBar(
-          selectedIndex: _currentNavIndex,
-          onDestinationSelected: _onNavTapped,
-          backgroundColor: Colors.transparent,
-          indicatorColor: primaryBlue.withValues(alpha: 0.12),
-          elevation: 0,
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home_rounded, color: primaryBlue),
-              label: 'Home',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.explore_outlined),
-              selectedIcon: Icon(Icons.explore_rounded, color: primaryBlue),
-              label: 'Explore',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.luggage_outlined),
-              selectedIcon: Icon(Icons.luggage_rounded, color: primaryBlue),
-              label: 'Trips',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.account_balance_wallet_outlined),
-              selectedIcon: Icon(
-                Icons.account_balance_wallet_rounded,
-                color: primaryBlue,
-              ),
-              label: 'Budget',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded, color: primaryBlue),
-              label: 'Profile',
-            ),
-          ],
-        ),
+      // Integrated Floating Bottom Navigation Bar
+      bottomNavigationBar: CustomFloatingNavBar(
+        selectedIndex: _currentNavIndex,
+        onDestinationSelected: _onNavTapped,
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project_tride/Models/user_model.dart';
+import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman beranda/halaman_beranda.dart';
 import '../halaman budget/halaman_budget.dart';
 import '../halaman explore/halaman_jelajah.dart';
@@ -100,7 +101,7 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
       'Sep',
       'Okt',
       'Nov',
-      'Des'
+      'Des',
     ];
     return "${date.day} ${months[date.month - 1]} ${date.year}";
   }
@@ -303,10 +304,7 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                                   ),
                                 ),
                               ),
-                              const Expanded(
-                                flex: 3,
-                                child: SizedBox(),
-                              ),
+                              const Expanded(flex: 3, child: SizedBox()),
                             ],
                           ),
                         ),
@@ -552,10 +550,7 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                     children: [
                       const Text(
                         "Tanggal masih fleksibel",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: textSlate,
-                        ),
+                        style: TextStyle(fontSize: 14, color: textSlate),
                       ),
                       Switch(
                         value: _isFlexibleDate,
@@ -667,56 +662,10 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
           ),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.9),
-          border: Border(
-            top: BorderSide(
-              color: surfaceVariant.withValues(alpha: 0.5),
-              width: 1,
-            ),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, -1),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: 2,
-          onTap: _onNavTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: primaryBlue,
-          unselectedItemColor: textSlate,
-          selectedFontSize: 11,
-          unselectedFontSize: 11,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_rounded),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.explore_rounded),
-              label: 'Explore',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.flight_takeoff_rounded),
-              label: 'Trips',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.account_balance_wallet_rounded),
-              label: 'Budget',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_rounded),
-              label: 'Profile',
-            ),
-          ],
-        ),
+      // Integrated Floating Bottom Navigation Bar
+      bottomNavigationBar: CustomFloatingNavBar(
+        selectedIndex: 2,
+        onDestinationSelected: _onNavTapped,
       ),
     );
   }

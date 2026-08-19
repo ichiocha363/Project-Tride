@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project_tride/Models/user_model.dart';
+import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman beranda/halaman_beranda.dart';
 import '../halaman explore/halaman_jelajah.dart';
@@ -992,116 +993,11 @@ class _HalamanBudgetState extends State<HalamanBudget> {
               ),
             ],
           ),
-
-          // Floating Glassmorphic Bottom Navigation Bar
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: 16,
-            child: Container(
-              height: 64,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.95),
-                borderRadius: BorderRadius.circular(36),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(
-                    icon: Icons.home_outlined,
-                    label: "Home",
-                    isActive: false,
-                    onTap: () => _onNavTapped(0),
-                  ),
-                  _buildNavItem(
-                    icon: Icons.explore_outlined,
-                    label: "Explore",
-                    isActive: false,
-                    onTap: () => _onNavTapped(1),
-                  ),
-                  _buildNavItem(
-                    icon: Icons.luggage_outlined,
-                    label: "Trips",
-                    isActive: false,
-                    onTap: () => _onNavTapped(2),
-                  ),
-                  _buildNavItem(
-                    icon: Icons.account_balance_wallet_rounded,
-                    label: "Budget",
-                    isActive: true,
-                    onTap: () => _onNavTapped(3),
-                  ),
-                  _buildNavItem(
-                    icon: Icons.person_outline_rounded,
-                    label: "Profile",
-                    isActive: false,
-                    onTap: () => _onNavTapped(4),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    const oceanBlue = Color(0xFF00668A);
-    const textSlate = Color(0xFF64748B);
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              Icon(icon, size: 22, color: isActive ? oceanBlue : textSlate),
-              if (isActive)
-                Positioned(
-                  top: -4,
-                  child: Container(
-                    width: 5,
-                    height: 5,
-                    decoration: const BoxDecoration(
-                      color: oceanBlue,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 10,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-              color: isActive ? oceanBlue : textSlate,
-            ),
-          ),
-        ],
+      bottomNavigationBar: CustomFloatingNavBar(
+        selectedIndex: 3,
+        onDestinationSelected: _onNavTapped,
       ),
     );
   }

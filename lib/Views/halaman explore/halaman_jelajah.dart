@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project_tride/Models/user_model.dart';
+import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman beranda/halaman_beranda.dart';
 import '../halaman budget/halaman_budget.dart';
@@ -757,55 +758,10 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
         ],
       ),
 
-      // Integrated Bottom Navigation Bar
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.95),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: NavigationBar(
-          selectedIndex: 1,
-          onDestinationSelected: _onNavTapped,
-          backgroundColor: Colors.transparent,
-          indicatorColor: primaryBlue.withValues(alpha: 0.12),
-          elevation: 0,
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home_rounded, color: primaryBlue),
-              label: 'Home',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.explore_outlined),
-              selectedIcon: Icon(Icons.explore_rounded, color: primaryBlue),
-              label: 'Explore',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.luggage_outlined),
-              selectedIcon: Icon(Icons.luggage_rounded, color: primaryBlue),
-              label: 'Trips',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.account_balance_wallet_outlined),
-              selectedIcon: Icon(
-                Icons.account_balance_wallet_rounded,
-                color: primaryBlue,
-              ),
-              label: 'Budget',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded, color: primaryBlue),
-              label: 'Profile',
-            ),
-          ],
-        ),
+      // Integrated Floating Bottom Navigation Bar
+      bottomNavigationBar: CustomFloatingNavBar(
+        selectedIndex: 1,
+        onDestinationSelected: _onNavTapped,
       ),
     );
   }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:getwidget/getwidget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:project_tride/Database/db_helper.dart';
 import 'package:project_tride/Database/destination_model.dart';
 import 'package:project_tride/Database/favorite_model.dart';
@@ -144,10 +146,12 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
         dbDestinations = await db.getDestinations();
       }
 
-      // Load favorites for user
-      final favorites = await db.getFavoritesByUser(userId);
-      if (favorites.isEmpty) {
-        // Populate default favorites if none exist yet
+      // Seed initial favorites once per user if never seeded before
+      final prefs = await SharedPreferences.getInstance();
+      final seedKey = 'has_seeded_favorites_v3_$userId';
+      final hasSeeded = prefs.getBool(seedKey) ?? false;
+
+      if (!hasSeeded) {
         final now = DateTime.now().toIso8601String();
         for (var dest in dbDestinations) {
           if (dest.id != null) {
@@ -160,6 +164,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
             );
           }
         }
+        await prefs.setBool(seedKey, true);
       }
 
       final updatedFavorites = await db.getFavoritesByUser(userId);
@@ -170,21 +175,15 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
           .toList();
 
       setState(() {
-        _savedDestinations = filteredDestinations.isNotEmpty
-            ? filteredDestinations
-            : dbDestinations;
+        _savedDestinations = filteredDestinations;
         _favoriteIds.clear();
-        _favoriteIds.addAll(
-          _savedDestinations.map((d) => d.id ?? 0).where((id) => id != 0),
-        );
+        _favoriteIds.addAll(favDestIds);
         _isLoading = false;
       });
     } catch (e) {
-      // Fallback to static seed dataset if DB operations encounter issues
       setState(() {
-        _savedDestinations = _initialSeedDestinations;
+        _savedDestinations = [];
         _favoriteIds.clear();
-        _favoriteIds.addAll(_initialSeedDestinations.map((d) => d.id!));
         _isLoading = false;
       });
     }
@@ -200,8 +199,12 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
     setState(() {
       if (isFav) {
         _favoriteIds.remove(destId);
+        _savedDestinations.removeWhere((item) => item.id == destId);
       } else {
         _favoriteIds.add(destId);
+        if (!_savedDestinations.any((item) => item.id == destId)) {
+          _savedDestinations.add(destination);
+        }
       }
     });
 
@@ -246,17 +249,11 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
           ),
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).clearSnackBars();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              duration: const Duration(seconds: 1),
-              backgroundColor: primaryBlue,
-              content: Text('${destination.name} saved to wishlist!'),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
+          GFToast.showToast(
+            '${destination.name} saved to wishlist!',
+            context,
+            toastPosition: GFToastPosition.BOTTOM,
+            toastDuration: 1,
           );
         }
       }
@@ -349,7 +346,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
                     child: Row(
                       children: [
                         Text(
-                          "${_favoriteIds.length} places",
+                          "${places.length} places",
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
