@@ -62,6 +62,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
     });
 
     try {
+      await DbHelper.instance.ensureDefaultTripExists(1);
       final list = await DbHelper.instance.getAllExpenses();
       if (list.isEmpty) {
         // Seed initial default expenses to SQLite database
@@ -103,7 +104,9 @@ class _HalamanBudgetState extends State<HalamanBudget> {
       } else {
         _dbExpenses = list;
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("Error loading expenses: $e");
+    }
 
     if (mounted) {
       setState(() {
@@ -244,23 +247,38 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                       description: title,
                     );
 
-                    await DbHelper.instance.insertExpense(newExp);
-                    await _loadExpenses();
+                    try {
+                      await DbHelper.instance.insertExpense(newExp);
+                      await _loadExpenses();
 
-                    if (!context.mounted) return;
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text(
-                          "Pengeluaran berhasil ditambahkan!",
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text(
+                            "Pengeluaran berhasil ditambahkan!",
+                          ),
+                          backgroundColor: const Color(0xFF3E9C5D),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        backgroundColor: const Color(0xFF3E9C5D),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                      );
+                    } catch (e) {
+                      debugPrint('Error adding expense: $e');
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Gagal menyimpan pengeluaran: $e"),
+                          backgroundColor: Colors.redAccent,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0F172A),

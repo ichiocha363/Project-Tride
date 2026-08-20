@@ -313,7 +313,51 @@ class DbHelper {
   // EXPENSES CRUD
   // ==================================================
 
+  Future<void> ensureDefaultTripExists([int tripId = 1]) async {
+    final db = await database;
+    final existingTrip = await db.query(
+      DatabaseTables.tableTrips,
+      where: 'id = ?',
+      whereArgs: [tripId],
+    );
+    if (existingTrip.isEmpty) {
+      final existingUser = await db.query(
+        DatabaseTables.tableUsers,
+        where: 'id = ?',
+        whereArgs: [1],
+      );
+      if (existingUser.isEmpty) {
+        await db.insert(
+          DatabaseTables.tableUsers,
+          {
+            'id': 1,
+            'name': 'Default User',
+            'email': 'user@tride.com',
+            'password': '123',
+            'created_at': DateTime.now().toIso8601String(),
+          },
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
+      }
+      await db.insert(
+        DatabaseTables.tableTrips,
+        {
+          'id': tripId,
+          'user_id': 1,
+          'trip_name': 'Kyoto Getaway',
+          'start_date': '2026-10-10',
+          'end_date': '2026-10-17',
+          'budget': 30000000,
+          'status': 'upcoming',
+          'created_at': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+  }
+
   Future<int> insertExpense(ExpenseModel expense) async {
+    await ensureDefaultTripExists(expense.tripId);
     final db = await database;
     return await db.insert(
       DatabaseTables.tableExpenses,
