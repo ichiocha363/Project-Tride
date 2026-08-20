@@ -1,16 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:project_tride/Constants/app_colors.dart';
+import 'package:project_tride/Database/db_helper.dart';
+import 'package:project_tride/Database/destination_model.dart';
+import 'package:project_tride/Database/favorite_model.dart';
 import 'package:project_tride/Models/user_model.dart';
+import 'package:project_tride/Widgets/category_filter_bar.dart';
 import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman beranda/halaman_beranda.dart';
+import '../halaman beranda/halaman_destination_detail.dart';
 import '../halaman budget/halaman_budget.dart';
 import '../halaman profile/halaman_profil.dart';
 import '../halaman profile/halaman_saved_places.dart';
 
 class HalamanJelajah extends StatefulWidget {
   final UserModel? user;
+  final bool isEmbeddedInShell;
 
-  const HalamanJelajah({super.key, this.user});
+  const HalamanJelajah({
+    super.key,
+    this.user,
+    this.isEmbeddedInShell = false,
+  });
 
   @override
   State<HalamanJelajah> createState() => _HalamanJelajahState();
@@ -19,30 +30,30 @@ class HalamanJelajah extends StatefulWidget {
 class _HalamanJelajahState extends State<HalamanJelajah> {
   final TextEditingController _searchController = TextEditingController();
   int _selectedCategoryIndex = 0;
-  final Set<int> _favorites = {1};
+  final Set<int> _favorites = {};
 
   final List<String> _categories = [
-    'All',
-    'Nature',
-    'Urban',
-    'Relax',
-    'Adventure',
+    'Semua',
+    'Alam',
+    'Perkotaan',
+    'Santai',
+    'Petualangan',
   ];
 
   final List<Map<String, dynamic>> _curatedCollections = [
     {
       'id': 1,
-      'tag': 'COASTAL ESCAPES',
-      'title': 'Mediterranean\nDreams',
-      'destinations': '12 Destinations',
+      'tag': 'WISATA PANTAI',
+      'title': 'Impian\nMediterranean',
+      'destinations': '12 Destinasi',
       'imageUrl':
           'https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=800&auto=format&fit=crop',
     },
     {
       'id': 2,
-      'tag': 'WILDERNESS',
-      'title': 'Alpine\nSolitude',
-      'destinations': '8 Destinations',
+      'tag': 'ALAM BEBAS',
+      'title': 'Ketenangan\nPegunungan',
+      'destinations': '8 Destinasi',
       'imageUrl':
           'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop',
     },
@@ -50,39 +61,39 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
 
   final List<Map<String, dynamic>> _trendingDestinations = [
     {
-      'id': 0,
+      'id': 7,
       'title': 'Tokyo, Japan',
-      'price': 'from \$850',
+      'price': 'mulai Rp 13,5jt',
       'rating': '4.9',
       'reviews': '(1.2k)',
-      'category': 'Urban',
+      'category': 'Perkotaan',
       'imageUrl':
           'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=600&auto=format&fit=crop',
     },
     {
-      'id': 1,
+      'id': 8,
       'title': 'Santorini, Greece',
-      'price': 'from \$1,200',
+      'price': 'mulai Rp 19jt',
       'rating': '4.9',
       'reviews': '(2.4k)',
-      'category': 'Relax',
+      'category': 'Santai',
       'imageUrl':
           'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?q=80&w=600&auto=format&fit=crop',
     },
     {
-      'id': 2,
+      'id': 9,
       'title': 'Labuan Bajo, ID',
-      'price': 'from \$450',
+      'price': 'mulai Rp 6,8jt',
       'rating': '4.8',
       'reviews': '(1.8k)',
-      'category': 'Nature',
+      'category': 'Alam',
       'imageUrl':
           'https://images.unsplash.com/photo-1516690561799-46d8f74f9abf?q=80&w=600&auto=format&fit=crop',
     },
     {
       'id': 3,
       'title': 'Kyoto Pagoda',
-      'price': 'from \$790',
+      'price': 'mulai Rp 12jt',
       'rating': '4.8',
       'reviews': '(3.1k)',
       'category': 'Urban',
@@ -90,6 +101,25 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
           'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=600&auto=format&fit=crop',
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final userId = widget.user?.id ?? 1;
+      final favs = await DbHelper.instance.getFavoritesByUser(userId);
+      if (mounted) {
+        setState(() {
+          _favorites.clear();
+          _favorites.addAll(favs.map((f) => f.destinationId));
+        });
+      }
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
@@ -140,9 +170,9 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
 
   @override
   Widget build(BuildContext context) {
-    const Color bgCloud = Color(0xFFF8FAFC);
-    const Color textNavy = Color(0xFF0F172A);
-    const Color primaryBlue = Color(0xFF004AC6);
+    const Color bgCloud = AppColors.background;
+    const Color textNavy = AppColors.textPrimary;
+    const Color primaryBlue = AppColors.primaryDeep;
 
     // Filter logic
     final query = _searchController.text.toLowerCase().trim();
@@ -150,8 +180,9 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
 
     final filteredList = _trendingDestinations.where((item) {
       final matchesQuery = item['title'].toLowerCase().contains(query);
-      final matchesCategory =
-          selectedCategory == 'All' || item['category'] == selectedCategory;
+      final matchesCategory = selectedCategory == 'Semua' ||
+          selectedCategory == 'All' ||
+          item['category'] == selectedCategory;
       return matchesQuery && matchesCategory;
     }).toList();
 
@@ -259,7 +290,7 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                   child: Container(
                     height: 54,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE1E2ED),
+                      color: const Color.fromARGB(255, 253, 253, 253),
                       borderRadius: BorderRadius.circular(30),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -282,7 +313,7 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                               fontSize: 15,
                             ),
                             decoration: const InputDecoration(
-                              hintText: "Where do you want to go?",
+                              hintText: "Ke mana tujuan liburan Anda?",
                               hintStyle: TextStyle(
                                 color: Colors.black45,
                                 fontSize: 15,
@@ -320,42 +351,14 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                 ),
 
                 // Category Chips
-                SizedBox(
-                  height: 42,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _categories.length,
-                    itemBuilder: (context, index) {
-                      final isSelected = index == _selectedCategoryIndex;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: ChoiceChip(
-                          label: Text(_categories[index]),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() {
-                                _selectedCategoryIndex = index;
-                              });
-                            }
-                          },
-                          selectedColor: primaryBlue,
-                          backgroundColor: const Color(0xFFE1E2ED),
-                          labelStyle: TextStyle(
-                            color: isSelected ? Colors.white : textNavy,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          side: BorderSide.none,
-                          showCheckmark: false,
-                        ),
-                      );
-                    },
-                  ),
+                CategoryFilterBar(
+                  categories: _categories,
+                  selectedCategory: _categories[_selectedCategoryIndex],
+                  onCategorySelected: (cat) {
+                    setState(() {
+                      _selectedCategoryIndex = _categories.indexOf(cat);
+                    });
+                  },
                 ),
                 const SizedBox(height: 24),
 
@@ -366,7 +369,7 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        "Curated\nCollections",
+                        "Koleksi\nPilihan",
                         style: TextStyle(
                           fontFamily: 'Plus Jakarta Sans',
                           fontWeight: FontWeight.bold,
@@ -378,7 +381,7 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                       TextButton(
                         onPressed: () {},
                         child: const Text(
-                          "VIEW ALL",
+                          "LIHAT SEMUA",
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -400,89 +403,109 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                     itemCount: _curatedCollections.length,
                     itemBuilder: (context, index) {
                       final item = _curatedCollections[index];
-                      return Container(
-                        width: 280,
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(28),
-                          image: DecorationImage(
-                            image: NetworkImage(item['imageUrl']),
-                            fit: BoxFit.cover,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.12),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => HalamanDestinationDetail(
+                                user: widget.user,
+                                destinationTitle: item['title'].replaceAll(
+                                  '\n',
+                                  ' ',
+                                ),
+                                categoryTag: item['tag'],
+                                imageUrl: item['imageUrl'],
+                                description:
+                                    'Jelajahi keindahan dan pengalaman eksklusif di ${item['title'].replaceAll('\n', ' ')}. Tempat liburan impian terbaik untuk merilekskan pikiran.',
+                              ),
                             ),
-                          ],
-                        ),
+                          );
+                        },
                         child: Container(
-                          padding: const EdgeInsets.all(22),
+                          width: 280,
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(28),
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withValues(alpha: 0.8),
-                              ],
+                            image: DecorationImage(
+                              image: NetworkImage(item['imageUrl']),
+                              fit: BoxFit.cover,
                             ),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.25),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  item['tag'],
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                item['title'],
-                                style: const TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  fontFamily: 'Plus Jakarta Sans',
-                                  height: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.location_on_rounded,
-                                    color: Colors.white70,
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    item['destinations'],
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                ],
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.12),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
                               ),
                             ],
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.all(22),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(28),
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: 0.8),
+                                ],
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.25),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    item['tag'],
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  item['title'],
+                                  style: const TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    height: 1.1,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.location_on_rounded,
+                                      color: Colors.white70,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      item['destinations'],
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       );
@@ -506,7 +529,7 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 20),
                         child: Text(
-                          "Trending Now",
+                          "Trending Saat Ini",
                           style: TextStyle(
                             fontFamily: 'Plus Jakarta Sans',
                             fontWeight: FontWeight.bold,
@@ -544,207 +567,308 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                             final item = filteredList[index];
                             final isFav = _favorites.contains(item['id']);
 
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: bgCloud,
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.04),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => HalamanDestinationDetail(
+                                      user: widget.user,
+                                      destinationTitle: item['title'],
+                                      categoryTag:
+                                          (item['category'] as String?)
+                                              ?.toUpperCase() ??
+                                          'DESTINASI POPULER',
+                                      imageUrl: item['imageUrl'],
+                                      rating:
+                                          item['rating']?.toString() ?? '4.8',
+                                      pricePerDay: item['price'] ?? 'Rp 1.5M',
+                                      description:
+                                          'Tinggalkan rutinitas dan nikmati keindahan ${item['title']}. Temukan berbagai atraksi budaya, alam, serta kuliner khas yang memukau.',
+                                    ),
                                   ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Image Banner with Price Tag
-                                  Stack(
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius:
-                                            const BorderRadius.vertical(
-                                              top: Radius.circular(20),
-                                            ),
-                                        child: Image.network(
-                                          item['imageUrl'],
-                                          height: 140,
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                        ),
+                                );
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: bgCloud,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.04,
                                       ),
-
-                                      // Favorite Heart Button
-                                      Positioned(
-                                        top: 8,
-                                        right: 8,
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              if (isFav) {
-                                                _favorites.remove(item['id']);
-                                              } else {
-                                                _favorites.add(item['id']);
-                                              }
-                                            });
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    HalamanSavedPlaces(
-                                                  user: widget.user,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.all(6),
-                                            decoration: BoxDecoration(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.35,
-                                              ),
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              isFav
-                                                  ? Icons.favorite_rounded
-                                                  : Icons
-                                                        .favorite_border_rounded,
-                                              color: isFav
-                                                  ? Colors.redAccent
-                                                  : Colors.white,
-                                              size: 16,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-
-                                      // Price Tag
-                                      Positioned(
-                                        bottom: 8,
-                                        left: 8,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.9,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            item['price'],
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: textNavy,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  // Ticket Perforation Dashed Line
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 8,
-                                        height: 16,
-                                        decoration: const BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.only(
-                                            topRight: Radius.circular(8),
-                                            bottomRight: Radius.circular(8),
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: LayoutBuilder(
-                                          builder: (context, constraints) {
-                                            return Flex(
-                                              direction: Axis.horizontal,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: List.generate(
-                                                (constraints.constrainWidth() /
-                                                        8)
-                                                    .floor(),
-                                                (_) => SizedBox(
-                                                  width: 4,
-                                                  height: 1,
-                                                  child: DecoratedBox(
-                                                    decoration: BoxDecoration(
-                                                      color:
-                                                          Colors.grey.shade300,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                      Container(
-                                        width: 8,
-                                        height: 16,
-                                        decoration: const BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: Radius.circular(8),
-                                            bottomLeft: Radius.circular(8),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  // Details Stub
-                                  Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Image Banner with Price Tag
+                                    Stack(
                                       children: [
-                                        Text(
-                                          item['title'],
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                            color: textNavy,
-                                            fontFamily: 'Plus Jakarta Sans',
+                                        ClipRRect(
+                                          borderRadius:
+                                              const BorderRadius.vertical(
+                                                top: Radius.circular(20),
+                                              ),
+                                          child: Image.network(
+                                            item['imageUrl'],
+                                            height: 140,
+                                            width: double.infinity,
+                                            fit: BoxFit.cover,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.star_rounded,
-                                              color: Color(0xFFFDB813),
-                                              size: 16,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              "${item['rating']} ${item['reviews']}",
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey.shade600,
+
+                                        // Favorite Heart Button
+                                        Positioned(
+                                          top: 8,
+                                          right: 8,
+                                          child: GestureDetector(
+                                            onTap: () async {
+                                              final userId =
+                                                  widget.user?.id ?? 1;
+                                              final itemId = item['id'] as int;
+                                              final isCurrentlyFav = _favorites
+                                                  .contains(itemId);
+
+                                              try {
+                                                if (isCurrentlyFav) {
+                                                  await DbHelper.instance
+                                                      .removeFavorite(
+                                                        userId,
+                                                        itemId,
+                                                      );
+                                                  if (mounted) {
+                                                    setState(() {
+                                                      _favorites.remove(itemId);
+                                                    });
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).removeCurrentSnackBar();
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          '${item['title']} dihapus dari Saved Places',
+                                                        ),
+                                                        duration:
+                                                            const Duration(
+                                                              seconds: 1,
+                                                            ),
+                                                        behavior:
+                                                            SnackBarBehavior
+                                                                .floating,
+                                                      ),
+                                                    );
+                                                  }
+                                                } else {
+                                                  await DbHelper.instance
+                                                      .ensureDestinationExists(
+                                                        DestinationModel(
+                                                          id: itemId,
+                                                          name: item['title'],
+                                                          location:
+                                                              item['category'] ??
+                                                              '',
+                                                          description:
+                                                              item['title'],
+                                                          image:
+                                                              item['imageUrl'],
+                                                          category:
+                                                              item['category'] ??
+                                                              'General',
+                                                          rating:
+                                                              double.tryParse(
+                                                                item['rating'] ??
+                                                                    '4.8',
+                                                              ) ??
+                                                              4.8,
+                                                        ),
+                                                      );
+
+                                                  await DbHelper.instance
+                                                      .addFavorite(
+                                                        FavoriteModel(
+                                                          userId: userId,
+                                                          destinationId: itemId,
+                                                          createdAt: DateTime.now()
+                                                              .toIso8601String(),
+                                                        ),
+                                                      );
+                                                  if (mounted) {
+                                                    setState(() {
+                                                      _favorites.add(itemId);
+                                                    });
+                                                  }
+
+                                                  if (context.mounted) {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            HalamanSavedPlaces(
+                                                              user: widget.user,
+                                                            ),
+                                                      ),
+                                                    ).then(
+                                                      (_) => _loadFavorites(),
+                                                    );
+                                                  }
+                                                }
+                                              } catch (_) {}
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.all(6),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black.withValues(
+                                                  alpha: 0.35,
+                                                ),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Icon(
+                                                isFav
+                                                    ? Icons.favorite_rounded
+                                                    : Icons
+                                                          .favorite_border_rounded,
+                                                color: isFav
+                                                    ? Colors.redAccent
+                                                    : Colors.white,
+                                                size: 16,
                                               ),
                                             ),
-                                          ],
+                                          ),
+                                        ),
+
+                                        // Price Tag
+                                        Positioned(
+                                          bottom: 8,
+                                          left: 8,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(
+                                                alpha: 0.9,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              item['price'],
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: textNavy,
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ],
+
+                                    // Ticket Perforation Dashed Line
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 8,
+                                          height: 16,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.only(
+                                              topRight: Radius.circular(8),
+                                              bottomRight: Radius.circular(8),
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: LayoutBuilder(
+                                            builder: (context, constraints) {
+                                              return Flex(
+                                                direction: Axis.horizontal,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: List.generate(
+                                                  (constraints.constrainWidth() /
+                                                          8)
+                                                      .floor(),
+                                                  (_) => SizedBox(
+                                                    width: 4,
+                                                    height: 1,
+                                                    child: DecoratedBox(
+                                                      decoration: BoxDecoration(
+                                                        color: Colors
+                                                            .grey
+                                                            .shade300,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                        Container(
+                                          width: 8,
+                                          height: 16,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.only(
+                                              topLeft: Radius.circular(8),
+                                              bottomLeft: Radius.circular(8),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    // Details Stub
+                                    Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item['title'],
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                              color: textNavy,
+                                              fontFamily: 'Plus Jakarta Sans',
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.star_rounded,
+                                                color: Color(0xFFFDB813),
+                                                size: 16,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                "${item['rating']} ${item['reviews']}",
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey.shade600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             );
                           },
@@ -759,10 +883,12 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
       ),
 
       // Integrated Floating Bottom Navigation Bar
-      bottomNavigationBar: CustomFloatingNavBar(
-        selectedIndex: 1,
-        onDestinationSelected: _onNavTapped,
-      ),
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomFloatingNavBar(
+              selectedIndex: 1,
+              onDestinationSelected: _onNavTapped,
+            ),
     );
   }
 }

@@ -10,6 +10,8 @@ class AppColors {
   static const Color primary = Color(0xFF2563EB);
   static const Color primaryDark = Color(0xFF1D4ED8);
   static const Color primaryLight = Color(0xFF60A5FA);
+  static const Color primaryDeep = Color(0xFF004AC6);
+  static const Color primaryFixed = Color(0xFFDBE1FF);
 
   // =========================
   // SECONDARY
@@ -17,14 +19,17 @@ class AppColors {
 
   static const Color secondary = Color(0xFF38BDF8);
   static const Color secondaryLight = Color(0xFF7DD3FC);
+  static const Color sunsetOrange = Color(0xFFFB7A3C);
 
   // =========================
-  // BACKGROUND
+  // BACKGROUND & SURFACE
   // =========================
 
   static const Color background = Color(0xFFF8FAFC);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceLight = Color(0xFFF1F5F9);
+  static const Color surfaceVariant = Color(0xFFE1E2ED);
+  static const Color surfaceLow = Color(0xFFF3F3FE);
 
   // =========================
   // TEXT

@@ -157,7 +157,16 @@ class DbHelper {
     return await db.insert(
       DatabaseTables.tableDestinations,
       destination.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  Future<void> ensureDestinationExists(DestinationModel destination) async {
+    if (destination.id == null) return;
+    final existing = await getDestinationById(destination.id!);
+    if (existing == null) {
+      await insertDestination(destination);
+    }
   }
 
   Future<List<DestinationModel>> getDestinations() async {
@@ -319,6 +328,15 @@ class DbHelper {
       where: 'trip_id = ?',
       whereArgs: [tripId],
       orderBy: 'date DESC',
+    );
+    return result.map((json) => ExpenseModel.fromMap(json)).toList();
+  }
+
+  Future<List<ExpenseModel>> getAllExpenses() async {
+    final db = await database;
+    final result = await db.query(
+      DatabaseTables.tableExpenses,
+      orderBy: 'id DESC',
     );
     return result.map((json) => ExpenseModel.fromMap(json)).toList();
   }

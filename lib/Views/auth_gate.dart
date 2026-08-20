@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:project_tride/Constants/app_colors.dart';
 import 'package:project_tride/Constants/app_typography.dart';
 import 'package:project_tride/Models/user_model.dart';
-import 'package:project_tride/Views/halaman beranda/halaman_beranda.dart';
+import 'package:project_tride/Views/halaman_utama.dart';
 import 'package:project_tride/Views/halaman_login.dart';
 import 'package:project_tride/utils/session_manager.dart';
 
@@ -119,12 +119,12 @@ class _AuthGateState extends State<AuthGate>
 
     if (!mounted) return;
 
-    // Navigasi ke Halaman Home jika loggedIn & data user valid, jika tidak ke Login
+    // Navigasi ke Halaman Utama jika loggedIn & data user valid, jika tidak ke Login
     if (isLoggedIn && currentUser != null) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => HalamanBeranda(user: currentUser!),
+          builder: (context) => HalamanUtama(user: currentUser!),
         ),
       );
     } else {

@@ -1,8 +1,12 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:getwidget/getwidget.dart';
+import 'package:project_tride/Constants/app_colors.dart';
 import 'package:project_tride/Models/user_model.dart';
 import '../../Widgets/custom_floating_nav_bar.dart';
+import '../../Widgets/preference_tile.dart';
+import '../../Widgets/profile_stat_item.dart';
+import '../../Widgets/milestone_card.dart';
 import 'package:project_tride/utils/session_manager.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman beranda/halaman_beranda.dart';
@@ -11,12 +15,19 @@ import '../halaman explore/halaman_jelajah.dart';
 import '../halaman_login.dart';
 import 'halaman_personal_info.dart';
 import 'halaman_saved_places.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:project_tride/Database/db_helper.dart';
 import 'package:project_tride/Database/user_model.dart' as db_user;
 
 class HalamanProfil extends StatefulWidget {
   final UserModel? user;
+  final bool isEmbeddedInShell;
 
-  const HalamanProfil({super.key, this.user});
+  const HalamanProfil({
+    super.key,
+    this.user,
+    this.isEmbeddedInShell = false,
+  });
 
   @override
   State<HalamanProfil> createState() => _HalamanProfilState();
@@ -28,6 +39,10 @@ class _HalamanProfilState extends State<HalamanProfil>
   bool _notificationsEnabled = true;
   late AnimationController _orbitController;
 
+  String? _profileName;
+  String? _profileEmail;
+  String? _profileAvatar;
+
   @override
   void initState() {
     super.initState();
@@ -35,6 +50,38 @@ class _HalamanProfilState extends State<HalamanProfil>
       vsync: this,
       duration: const Duration(seconds: 8),
     )..repeat();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final userId = widget.user?.id ?? 1;
+    final prefs = await SharedPreferences.getInstance();
+
+    String name = prefs.getString('user_name_$userId') ??
+        (widget.user?.nama ?? 'Zhilly Hilmansyah');
+    String email = prefs.getString('user_email_$userId') ??
+        (widget.user?.email ?? 'zhilly@example.com');
+    String? avatar = prefs.getString('user_avatar_$userId');
+
+    try {
+      if (widget.user?.id != null) {
+        final dbUser = await DbHelper.instance.getUserById(widget.user!.id!);
+        if (dbUser != null) {
+          name = prefs.getString('user_name_$userId') ?? dbUser.name;
+          email = prefs.getString('user_email_$userId') ?? dbUser.email;
+          avatar =
+              prefs.getString('user_avatar_$userId') ?? dbUser.profileImage;
+        }
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _profileName = name;
+        _profileEmail = email;
+        _profileAvatar = avatar;
+      });
+    }
   }
 
   @override
@@ -50,12 +97,11 @@ class _HalamanProfilState extends State<HalamanProfil>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
-            Icon(Icons.logout_rounded, color: Color(0xFFBA1A1A)),
+            Icon(Icons.logout_rounded, color: AppColors.error),
             SizedBox(width: 10),
             Text(
               "Konfirmasi Logout",
               style: TextStyle(
-                fontFamily: 'Plus Jakarta Sans',
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -80,8 +126,8 @@ class _HalamanProfilState extends State<HalamanProfil>
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFBA1A1A),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.error,
+              foregroundColor: AppColors.textWhite,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -136,19 +182,13 @@ class _HalamanProfilState extends State<HalamanProfil>
 
   @override
   Widget build(BuildContext context) {
-    const Color bgSurface = Color(0xFFFAF8FF);
-    const Color textNavy = Color(0xFF0F172A);
-    const Color textSlate = Color(0xFF64748B);
-    const Color primaryBlue = Color(0xFF004AC6);
-    const Color naturalGreen = Color(0xFF3E9C5D);
-    const Color warmYellow = Color(0xFFFDB813);
-    const Color surfaceVariant = Color(0xFFE1E2ED);
-
-    final userName = widget.user?.nama ?? 'Alex Mercer';
-    final userEmail = widget.user?.email ?? 'alex.mercer@tride.com';
+    final userName = _profileName ?? widget.user?.nama ?? 'Zhilly Hilmansyah';
+    final userEmail = _profileEmail ?? widget.user?.email ?? 'zhilly@example.com';
+    final userAvatar = _profileAvatar ??
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop';
 
     return Scaffold(
-      backgroundColor: bgSurface,
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
           // Scrollable Content
@@ -179,7 +219,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                                     end: Alignment.bottomCenter,
                                     colors: [
                                       Color(0xFF00174B),
-                                      Color(0xFF004AC6),
+                                      AppColors.primaryDeep,
                                     ],
                                   ),
                                 ),
@@ -202,7 +242,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                                 colors: [
                                   Colors.black45,
                                   Colors.transparent,
-                                  bgSurface,
+                                  AppColors.background,
                                 ],
                                 stops: [0.0, 0.5, 1.0],
                               ),
@@ -235,10 +275,10 @@ class _HalamanProfilState extends State<HalamanProfil>
                                     ),
                                     gradient: const SweepGradient(
                                       colors: [
-                                        Color(0xFF004AC6),
+                                        AppColors.primaryDeep,
                                         Color(0xFF40C2FD),
                                         Colors.transparent,
-                                        Color(0xFF004AC6),
+                                        AppColors.primaryDeep,
                                       ],
                                     ),
                                   ),
@@ -253,7 +293,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                             shape: GFAvatarShape.circle,
                             child: ClipOval(
                               child: Image.network(
-                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop',
+                                userAvatar,
                                 width: 108,
                                 height: 108,
                                 fit: BoxFit.cover,
@@ -275,7 +315,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: const BoxDecoration(
-                                color: bgSurface,
+                                color: AppColors.background,
                                 shape: BoxShape.circle,
                               ),
                               child: Container(
@@ -286,7 +326,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                                 ),
                                 child: const Icon(
                                   Icons.edit,
-                                  color: Colors.white,
+                                  color: AppColors.textWhite,
                                   size: 16,
                                 ),
                               ),
@@ -310,14 +350,16 @@ class _HalamanProfilState extends State<HalamanProfil>
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: textNavy,
-                          fontFamily: 'Plus Jakarta Sans',
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         userEmail,
-                        style: const TextStyle(fontSize: 13, color: textSlate),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Row(
@@ -328,7 +370,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: textSlate,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                           Container(
@@ -336,7 +378,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                             width: 4,
                             height: 4,
                             decoration: const BoxDecoration(
-                              color: Color(0xFFC3C6D7),
+                              color: AppColors.textLight,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -345,7 +387,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: textSlate,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ],
@@ -364,22 +406,20 @@ class _HalamanProfilState extends State<HalamanProfil>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildAiryStatItem(
+                        const ProfileStatItem(
                           value: "14",
-                          label: "TRIPS",
-                          valueColor: primaryBlue,
+                          label: "PERJALANAN",
+                          valueColor: AppColors.primaryDeep,
                         ),
-                        Container(height: 36, width: 1, color: surfaceVariant),
-                        _buildAiryStatItem(
+                        Container(
+                          height: 36,
+                          width: 1,
+                          color: AppColors.surfaceVariant,
+                        ),
+                        const ProfileStatItem(
                           value: "8",
-                          label: "COUNTRIES",
-                          valueColor: textNavy,
-                        ),
-                        Container(height: 36, width: 1, color: surfaceVariant),
-                        _buildAiryStatItem(
-                          value: "24k",
-                          label: "MILES",
-                          valueColor: textNavy,
+                          label: "NEGARA",
+                          valueColor: AppColors.textPrimary,
                         ),
                       ],
                     ),
@@ -395,12 +435,11 @@ class _HalamanProfilState extends State<HalamanProfil>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "Journey Highlights",
+                        "Sorotan Perjalanan",
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: textNavy,
-                          fontFamily: 'Plus Jakarta Sans',
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -417,63 +456,57 @@ class _HalamanProfilState extends State<HalamanProfil>
                               bottom: 20,
                               child: Container(
                                 width: 2,
-                                color: const Color(0xFFDBE1FF),
+                                color: AppColors.primaryFixed,
                               ),
                             ),
 
                             Column(
                               children: [
                                 // Milestone 1: First Solo Trip
-                                _buildTimelineMilestone(
-                                  dotColor: primaryBlue,
-                                  child: _buildMilestoneCard(
-                                    title: "First Solo Trip",
-                                    subtitle: "Patagonia, Argentina • Oct 2022",
-                                    imageUrl:
-                                        'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=600&auto=format&fit=crop',
-                                    fallbackIcon: Icons.landscape_rounded,
-                                    rotateAngle: 0.02,
-                                  ),
+                                const MilestoneCard(
+                                  dotColor: AppColors.primaryDeep,
+                                  title: "First Solo Trip",
+                                  subtitle: "Patagonia, Argentina • Oct 2022",
+                                  imageUrl:
+                                      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=600&auto=format&fit=crop',
+                                  fallbackIcon: Icons.landscape_rounded,
+                                  rotateAngle: 0.02,
                                 ),
                                 const SizedBox(height: 20),
 
                                 // Milestone 2: Eco Traveler Certified
-                                _buildTimelineMilestone(
-                                  dotColor: naturalGreen,
-                                  child: _buildMilestoneCard(
-                                    title: "Eco Traveler Certified",
-                                    subtitle: "Offset 10,000 miles • Mar 2023",
-                                    customContent: Container(
-                                      height: 120,
-                                      width: double.infinity,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE7E7F3),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: const Center(
-                                        child: Icon(
-                                          Icons.eco_rounded,
-                                          size: 48,
-                                          color: naturalGreen,
-                                        ),
+                                MilestoneCard(
+                                  dotColor: AppColors.mountain,
+                                  title: "Eco Traveler Certified",
+                                  subtitle: "Offset 10,000 miles • Mar 2023",
+                                  customContent: Container(
+                                    height: 120,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surfaceLight,
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.eco_rounded,
+                                        size: 48,
+                                        color: AppColors.mountain,
                                       ),
                                     ),
-                                    rotateAngle: -0.02,
                                   ),
+                                  rotateAngle: -0.02,
                                 ),
                                 const SizedBox(height: 20),
 
                                 // Milestone 3: Peak Bagger
-                                _buildTimelineMilestone(
-                                  dotColor: warmYellow,
-                                  child: _buildMilestoneCard(
-                                    title: "Peak Bagger",
-                                    subtitle: "Mt. Fuji Summit • Aug 2023",
-                                    imageUrl:
-                                        'https://images.unsplash.com/photo-1491557345352-5929e343eb89?q=80&w=600&auto=format&fit=crop',
-                                    fallbackIcon: Icons.terrain_rounded,
-                                    rotateAngle: 0.03,
-                                  ),
+                                const MilestoneCard(
+                                  dotColor: AppColors.warning,
+                                  title: "Peak Bagger",
+                                  subtitle: "Mt. Fuji Summit • Aug 2023",
+                                  imageUrl:
+                                      'https://images.unsplash.com/photo-1491557345352-5929e343eb89?q=80&w=600&auto=format&fit=crop',
+                                  fallbackIcon: Icons.terrain_rounded,
+                                  rotateAngle: 0.03,
                                 ),
                               ],
                             ),
@@ -497,18 +530,17 @@ class _HalamanProfilState extends State<HalamanProfil>
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: textNavy,
-                          fontFamily: 'Plus Jakarta Sans',
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 14),
 
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: surfaceVariant.withValues(alpha: 0.6),
+                            color: AppColors.surfaceVariant.withValues(alpha: 0.6),
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -523,9 +555,9 @@ class _HalamanProfilState extends State<HalamanProfil>
                           borderRadius: BorderRadius.circular(24),
                           child: Column(
                             children: [
-                              _buildPreferenceTile(
+                              PreferenceTile(
                                 icon: Icons.person_outline_rounded,
-                                title: "Personal Info",
+                                title: "Informasi Pribadi",
                                 onTap: () {
                                   Navigator.push(
                                     context,
@@ -541,33 +573,33 @@ class _HalamanProfilState extends State<HalamanProfil>
                                             : null,
                                       ),
                                     ),
-                                  );
+                                  ).then((_) => _loadUserData());
                                 },
                               ),
                               const Divider(
                                 height: 1,
                                 indent: 56,
                                 endIndent: 16,
-                                color: surfaceVariant,
+                                color: AppColors.surfaceVariant,
                               ),
-                              _buildPreferenceTile(
+                              PreferenceTile(
                                 icon: Icons.favorite_border_rounded,
-                                title: "Saved Places",
+                                title: "Tempat Tersimpan",
                                 trailing: Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: primaryBlue.withValues(alpha: 0.1),
+                                    color: AppColors.primaryDeep.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Text(
-                                    "0 places",
-                                    style: const TextStyle(
+                                    "Terfavorit",
+                                    style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: primaryBlue,
+                                      color: AppColors.primaryDeep,
                                     ),
                                   ),
                                 ),
@@ -585,22 +617,22 @@ class _HalamanProfilState extends State<HalamanProfil>
                                 height: 1,
                                 indent: 56,
                                 endIndent: 16,
-                                color: surfaceVariant,
+                                color: AppColors.surfaceVariant,
                               ),
-                              _buildPreferenceTile(
+                              PreferenceTile(
                                 icon: Icons.credit_card_outlined,
-                                title: "Payment Methods",
+                                title: "Metode Pembayaran",
                                 onTap: () {},
                               ),
                               const Divider(
                                 height: 1,
                                 indent: 56,
                                 endIndent: 16,
-                                color: surfaceVariant,
+                                color: AppColors.surfaceVariant,
                               ),
-                              _buildPreferenceTile(
+                              PreferenceTile(
                                 icon: Icons.notifications_none_rounded,
-                                title: "Notifications",
+                                title: "Notifikasi",
                                 trailing: Switch(
                                   value: _notificationsEnabled,
                                   onChanged: (val) {
@@ -608,18 +640,18 @@ class _HalamanProfilState extends State<HalamanProfil>
                                       _notificationsEnabled = val;
                                     });
                                   },
-                                  activeTrackColor: primaryBlue,
+                                  activeTrackColor: AppColors.primaryDeep,
                                 ),
                               ),
                               const Divider(
                                 height: 1,
                                 indent: 56,
                                 endIndent: 16,
-                                color: surfaceVariant,
+                                color: AppColors.surfaceVariant,
                               ),
-                              _buildPreferenceTile(
+                              PreferenceTile(
                                 icon: Icons.tune_rounded,
-                                title: "App Settings",
+                                title: "Pengaturan Aplikasi",
                                 trailing: Switch(
                                   value: _darkMode,
                                   onChanged: (val) {
@@ -627,7 +659,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                                       _darkMode = val;
                                     });
                                   },
-                                  activeTrackColor: primaryBlue,
+                                  activeTrackColor: AppColors.primaryDeep,
                                 ),
                               ),
                             ],
@@ -647,7 +679,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                     icon: const Icon(
                       Icons.logout_rounded,
                       size: 18,
-                      color: textSlate,
+                      color: AppColors.textSecondary,
                     ),
                     label: const Text(
                       "SIGN OUT",
@@ -655,7 +687,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.1,
-                        color: textSlate,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -702,7 +734,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                             errorBuilder: (context, error, stackTrace) =>
                                 const Icon(
                                   Icons.explore,
-                                  color: Colors.white,
+                                  color: AppColors.textWhite,
                                   size: 20,
                                 ),
                           ),
@@ -712,8 +744,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontFamily: 'Plus Jakarta Sans',
+                              color: AppColors.textWhite,
                             ),
                           ),
                         ],
@@ -732,7 +763,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                       child: IconButton(
                         icon: const Icon(
                           Icons.settings_outlined,
-                          color: Colors.white,
+                          color: AppColors.textWhite,
                         ),
                         onPressed: () {},
                       ),
@@ -746,169 +777,12 @@ class _HalamanProfilState extends State<HalamanProfil>
       ),
 
       // Integrated Floating Bottom Navigation Bar
-      bottomNavigationBar: CustomFloatingNavBar(
-        selectedIndex: 4,
-        onDestinationSelected: _onNavTapped,
-      ),
-    );
-  }
-
-  Widget _buildAiryStatItem({
-    required String value,
-    required String label,
-    required Color valueColor,
-  }) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: valueColor,
-            fontFamily: 'Plus Jakarta Sans',
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.2,
-            color: Color(0xFF64748B),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTimelineMilestone({
-    required Color dotColor,
-    required Widget child,
-  }) {
-    return Stack(
-      children: [
-        // Bullet Dot
-        Positioned(
-          left: 0,
-          top: 16,
-          child: Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: dotColor,
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFFAF8FF), width: 2),
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomFloatingNavBar(
+              selectedIndex: 4,
+              onDestinationSelected: _onNavTapped,
             ),
-          ),
-        ),
-
-        // Content Card Padding
-        Padding(padding: const EdgeInsets.only(left: 24), child: child),
-      ],
-    );
-  }
-
-  Widget _buildMilestoneCard({
-    required String title,
-    required String subtitle,
-    String? imageUrl,
-    IconData? fallbackIcon,
-    Widget? customContent,
-    double rotateAngle = 0.0,
-  }) {
-    const Color textNavy = Color(0xFF0F172A);
-    const Color textSlate = Color(0xFF64748B);
-
-    return Transform.rotate(
-      angle: rotateAngle,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFFE1E2ED).withValues(alpha: 0.5),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (customContent != null)
-              customContent
-            else if (imageUrl != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  height: 120,
-                  width: double.infinity,
-                  color: const Color(0xFFE7E7F3),
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Center(
-                        child: Icon(
-                          fallbackIcon ?? Icons.photo_rounded,
-                          size: 40,
-                          color: const Color(0xFF004AC6),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: textNavy,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: const TextStyle(fontSize: 13, color: textSlate),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPreferenceTile({
-    required IconData icon,
-    required String title,
-    Widget? trailing,
-    VoidCallback? onTap,
-  }) {
-    const Color textNavy = Color(0xFF0F172A);
-    const Color iconColor = Color(0xFF737686);
-
-    return ListTile(
-      onTap: onTap,
-      leading: Icon(icon, color: iconColor, size: 22),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
-          color: textNavy,
-        ),
-      ),
-      trailing:
-          trailing ??
-          const Icon(Icons.chevron_right_rounded, color: Color(0xFFC3C6D7)),
     );
   }
 }

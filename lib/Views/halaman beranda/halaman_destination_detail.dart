@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:project_tride/Constants/app_colors.dart';
+import 'package:project_tride/Database/db_helper.dart';
+import 'package:project_tride/Database/destination_model.dart';
+import 'package:project_tride/Database/favorite_model.dart';
 import 'package:project_tride/Models/user_model.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman budget/halaman_budget.dart';
@@ -44,20 +48,58 @@ class HalamanDestinationDetail extends StatefulWidget {
 
 class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
   bool _isBookmarked = false;
+  bool _isFavorited = false;
   final int _currentNavIndex = 1;
 
-  // Design Tokens & Colors matching Stitch Spec
-  static const Color primaryBlue = Color(0xFF004AC6);
-  static const Color primaryContainer = Color(0xFF2563EB);
-  static const Color bgCloud = Color(0xFFF8FAFC);
-  static const Color textNavy = Color(0xFF0F172A);
-  static const Color textSlate = Color(0xFF64748B);
-  static const Color warmYellow = Color(0xFFFDB813);
-  static const Color secondaryColor = Color(0xFF00668A);
-  static const Color secondaryContainer = Color(0xFF40C2FD);
-  static const Color sandBeige = Color(0xFFEDE0CB);
-  static const Color tertiaryOrange = Color(0xFFFB7A3C);
-  static const Color surfaceCard = Color(0xFFFFFFFF);
+  @override
+  void initState() {
+    super.initState();
+    _checkFavoriteStatus();
+  }
+
+  int _getDestinationId() {
+    final titleParts = widget.destinationTitle.split(',');
+    final name = titleParts.isNotEmpty
+        ? titleParts[0].trim()
+        : widget.destinationTitle;
+    final lower = name.toLowerCase();
+    if (lower.contains('rome')) return 1;
+    if (lower.contains('maldives')) return 2;
+    if (lower.contains('kyoto')) return 3;
+    if (lower.contains('iceland')) return 4;
+    if (lower.contains('marrakech')) return 5;
+    if (lower.contains('swiss') || lower.contains('zermatt')) return 6;
+    if (lower.contains('tokyo')) return 7;
+    if (lower.contains('santorini')) return 8;
+    if (lower.contains('labuan')) return 9;
+    return 10;
+  }
+
+  Future<void> _checkFavoriteStatus() async {
+    try {
+      final userId = widget.user?.id ?? 1;
+      final isFav =
+          await DbHelper.instance.isFavorite(userId, _getDestinationId());
+      if (mounted) {
+        setState(() {
+          _isFavorited = isFav;
+        });
+      }
+    } catch (_) {}
+  }
+
+  // Design Tokens & Colors matching AppColors
+  static const Color primaryBlue = AppColors.primaryDeep;
+  static const Color primaryContainer = AppColors.primary;
+  static const Color bgCloud = AppColors.background;
+  static const Color textNavy = AppColors.textPrimary;
+  static const Color textSlate = AppColors.textSecondary;
+  static const Color warmYellow = AppColors.warning;
+  static const Color secondaryColor = AppColors.info;
+  static const Color secondaryContainer = AppColors.secondary;
+  static const Color sandBeige = AppColors.surfaceVariant;
+  static const Color tertiaryOrange = AppColors.sunsetOrange;
+  static const Color surfaceCard = AppColors.surface;
 
   final List<Map<String, dynamic>> _defaultHighlights = [
     {
@@ -362,14 +404,74 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
                     children: [
                       // Love Favorite Button
                       GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  HalamanSavedPlaces(user: widget.user),
-                            ),
-                          );
+                        onTap: () async {
+                          final userId = widget.user?.id ?? 1;
+                          final destId = _getDestinationId();
+                          final titleParts = widget.destinationTitle.split(',');
+                          final name = titleParts.isNotEmpty
+                              ? titleParts[0].trim()
+                              : widget.destinationTitle;
+                          final location = titleParts.length > 1
+                              ? titleParts.sublist(1).join(',').trim()
+                              : widget.destinationTitle;
+
+                          try {
+                            if (_isFavorited) {
+                              await DbHelper.instance
+                                  .removeFavorite(userId, destId);
+                              if (mounted) {
+                                setState(() {
+                                  _isFavorited = false;
+                                });
+                                ScaffoldMessenger.of(context)
+                                    .removeCurrentSnackBar();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                        '$name dihapus dari Saved Places'),
+                                    duration: const Duration(seconds: 1),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            } else {
+                              await DbHelper.instance.ensureDestinationExists(
+                                DestinationModel(
+                                  id: destId,
+                                  name: name,
+                                  location: location,
+                                  description: widget.description,
+                                  image: widget.imageUrl,
+                                  category: widget.categoryTag,
+                                  rating: double.tryParse(widget.rating) ?? 4.8,
+                                ),
+                              );
+
+                              await DbHelper.instance.addFavorite(
+                                FavoriteModel(
+                                  userId: userId,
+                                  destinationId: destId,
+                                  createdAt: DateTime.now().toIso8601String(),
+                                ),
+                              );
+
+                              if (mounted) {
+                                setState(() {
+                                  _isFavorited = true;
+                                });
+                              }
+
+                              if (mounted) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        HalamanSavedPlaces(user: widget.user),
+                                  ),
+                                ).then((_) => _checkFavoriteStatus());
+                              }
+                            }
+                          } catch (_) {}
                         },
                         child: Container(
                           width: 42,
@@ -382,9 +484,13 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
                               width: 1,
                             ),
                           ),
-                          child: const Icon(
-                            Icons.favorite_rounded,
-                            color: Colors.redAccent,
+                          child: Icon(
+                            _isFavorited
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color: _isFavorited
+                                ? Colors.redAccent
+                                : Colors.white,
                             size: 22,
                           ),
                         ),

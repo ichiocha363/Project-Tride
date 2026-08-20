@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project_tride/Constants/app_colors.dart';
 import 'package:project_tride/Models/user_model.dart';
 import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
@@ -135,10 +136,10 @@ class _HalamanDestinationSearchState extends State<HalamanDestinationSearch> {
 
   @override
   Widget build(BuildContext context) {
-    const Color bgCloud = Color(0xFFF8FAFC);
-    const Color textNavy = Color(0xFF0F172A);
-    const Color primaryBlue = Color(0xFF004AC6);
-    const Color outlineColor = Color(0xFF737686);
+    const Color bgCloud = AppColors.background;
+    const Color textNavy = AppColors.textPrimary;
+    const Color primaryBlue = AppColors.primaryDeep;
+    const Color outlineColor = AppColors.textSecondary;
 
     final filteredDestinations = _trendingDestinations.where((dest) {
       if (_searchQuery.isEmpty) return true;

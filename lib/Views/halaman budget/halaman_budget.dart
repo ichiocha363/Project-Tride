@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:project_tride/Constants/app_colors.dart';
+import 'package:project_tride/Database/db_helper.dart';
+import 'package:project_tride/Database/expense_model.dart';
 import 'package:project_tride/Models/user_model.dart';
 import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
@@ -8,103 +11,124 @@ import '../halaman profile/halaman_profil.dart';
 
 class HalamanBudget extends StatefulWidget {
   final UserModel? user;
+  final bool isEmbeddedInShell;
 
-  const HalamanBudget({super.key, this.user});
+  const HalamanBudget({
+    super.key,
+    this.user,
+    this.isEmbeddedInShell = false,
+  });
 
   @override
   State<HalamanBudget> createState() => _HalamanBudgetState();
 }
 
 class _HalamanBudgetState extends State<HalamanBudget> {
-  final double _totalBudget = 2000.0;
+  final double _totalBudget = 30000000.0;
 
   final Map<String, Map<String, dynamic>> _categoryData = {
-    'Lodging': {
-      'subtitle': '4 nights at Ryokan',
+    'Penginapan': {
+      'subtitle': '4 malam menginap',
       'icon': Icons.bed_rounded,
       'color': const Color(0xFF00668A),
       'bgColor': const Color(0xFFC4E7FF),
     },
-    'Dining': {
-      'subtitle': 'Sushi & street food',
+    'Kuliner': {
+      'subtitle': 'Makanan & jajanan',
       'icon': Icons.ramen_dining_rounded,
       'color': const Color(0xFFBC4800),
       'bgColor': const Color(0xFFFFDBCD),
     },
-    'Transit': {
-      'subtitle': 'JR Pass & Taxis',
+    'Transportasi': {
+      'subtitle': 'Tiket & Taksi',
       'icon': Icons.train_rounded,
       'color': const Color(0xFF004AC6),
       'bgColor': const Color(0xFFDBE1FF),
     },
   };
 
-  late List<Map<String, dynamic>> _recentExpenses;
+  List<ExpenseModel> _dbExpenses = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _recentExpenses = [
-      {
-        'id': 1,
-        'title': 'Ichiran Ramen',
-        'category': 'Dining',
-        'subtitle': 'Today, 7:30 PM',
-        'amount': 18.50,
-        'date': 'Today, 7:30 PM',
-        'image':
-            'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?q=80&w=300&auto=format&fit=crop',
-      },
-      {
-        'id': 2,
-        'title': 'Ryokan Kyoto Stay',
-        'category': 'Lodging',
-        'subtitle': '4 nights at Ryokan',
-        'amount': 850.00,
-        'date': 'Yesterday',
-        'image':
-            'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=300&auto=format&fit=crop',
-      },
-      {
-        'id': 3,
-        'title': 'JR Pass 7-Day',
-        'category': 'Transit',
-        'subtitle': 'JR Pass & Taxis',
-        'amount': 150.00,
-        'date': '12 Oct 2026',
-        'image':
-            'https://images.unsplash.com/photo-1532105956626-9569c03602f6?q=80&w=300&auto=format&fit=crop',
-      },
-      {
-        'id': 4,
-        'title': 'Gion Sushi Dinner',
-        'category': 'Dining',
-        'subtitle': 'Sushi & street food',
-        'amount': 221.50,
-        'date': '13 Oct 2026',
-        'image':
-            'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=300&auto=format&fit=crop',
-      },
-    ];
+    _loadExpenses();
+  }
+
+  Future<void> _loadExpenses() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final list = await DbHelper.instance.getAllExpenses();
+      if (list.isEmpty) {
+        // Seed initial default expenses to SQLite database
+        final defaults = [
+          ExpenseModel(
+            tripId: 1,
+            category: 'Kuliner',
+            amount: 185000,
+            date: 'Hari ini, 19:30',
+            description: 'Ichiran Ramen',
+          ),
+          ExpenseModel(
+            tripId: 1,
+            category: 'Penginapan',
+            amount: 8500000,
+            date: 'Kemarin',
+            description: 'Ryokan Kyoto Stay',
+          ),
+          ExpenseModel(
+            tripId: 1,
+            category: 'Transportasi',
+            amount: 2250000,
+            date: '12 Okt 2026',
+            description: 'JR Pass 7-Day',
+          ),
+          ExpenseModel(
+            tripId: 1,
+            category: 'Kuliner',
+            amount: 2215000,
+            date: '13 Okt 2026',
+            description: 'Gion Sushi Dinner',
+          ),
+        ];
+
+        for (final exp in defaults) {
+          await DbHelper.instance.insertExpense(exp);
+        }
+        _dbExpenses = await DbHelper.instance.getAllExpenses();
+      } else {
+        _dbExpenses = list;
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   double get _totalSpent {
-    return _recentExpenses.fold(
+    return _dbExpenses.fold(
       0.0,
-      (sum, item) => sum + (item['amount'] as double),
+      (sum, item) => sum + item.amount,
     );
   }
 
   double getCategorySpent(String category) {
-    return _recentExpenses
-        .where((item) => item['category'] == category)
-        .fold(0.0, (sum, item) => sum + (item['amount'] as double));
+    return _dbExpenses
+        .where((item) => item.category == category)
+        .fold(0.0, (sum, item) => sum + item.amount);
   }
 
   void _showAddExpenseDialog() {
     final titleC = TextEditingController();
     final amountC = TextEditingController();
-    String selectedCategory = 'Lodging';
+    String selectedCategory = _categoryData.keys.first;
 
     showDialog(
       context: context,
@@ -150,8 +174,8 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                       decimal: true,
                     ),
                     decoration: InputDecoration(
-                      labelText: "Jumlah (\$)",
-                      hintText: "Misal: 18.50",
+                      labelText: "Jumlah (Rp)",
+                      hintText: "Misal: 185000",
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -185,35 +209,58 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                   child: const Text("Batal"),
                 ),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     final title = titleC.text.trim();
-                    final amount = double.tryParse(amountC.text.trim());
+                    final rawAmount = amountC.text
+                        .replaceAll('Rp', '')
+                        .replaceAll('rp', '')
+                        .replaceAll('.', '')
+                        .replaceAll(',', '')
+                        .replaceAll(' ', '')
+                        .trim();
+                    final amountVal = double.tryParse(rawAmount);
 
-                    if (title.isNotEmpty && amount != null && amount > 0) {
-                      setState(() {
-                        _recentExpenses.insert(0, {
-                          'id': DateTime.now().millisecondsSinceEpoch,
-                          'title': title,
-                          'category': selectedCategory,
-                          'subtitle': 'Hari ini',
-                          'amount': amount,
-                          'date': 'Hari ini',
-                        });
-                      });
-                      Navigator.pop(context);
+                    if (title.isEmpty || amountVal == null || amountVal <= 0) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text(
-                            "Pengeluaran berhasil ditambahkan!",
+                            "Mohon isi nama transaksi dan jumlah angka dengan benar.",
                           ),
-                          backgroundColor: const Color(0xFF3E9C5D),
+                          backgroundColor: Colors.redAccent,
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                       );
+                      return;
                     }
+
+                    final newExp = ExpenseModel(
+                      tripId: 1,
+                      category: selectedCategory,
+                      amount: amountVal.toInt(),
+                      date: 'Hari ini',
+                      description: title,
+                    );
+
+                    await DbHelper.instance.insertExpense(newExp);
+                    await _loadExpenses();
+
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text(
+                          "Pengeluaran berhasil ditambahkan!",
+                        ),
+                        backgroundColor: const Color(0xFF3E9C5D),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0F172A),
@@ -232,22 +279,212 @@ class _HalamanBudgetState extends State<HalamanBudget> {
     );
   }
 
-  void _deleteExpense(int id) {
-    setState(() {
-      _recentExpenses.removeWhere((item) => item['id'] == id);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text("Pengeluaran berhasil dihapus."),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  void _showEditExpenseDialog(ExpenseModel exp) {
+    final titleC = TextEditingController(text: exp.description ?? '');
+    final amountC = TextEditingController(text: exp.amount.toString());
+    String selectedCategory = _categoryData.containsKey(exp.category)
+        ? exp.category
+        : _categoryData.keys.first;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.edit_note_rounded, color: Color(0xFF0F172A)),
+                  SizedBox(width: 10),
+                  Text(
+                    "Edit Transaksi",
+                    style: TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleC,
+                    decoration: InputDecoration(
+                      labelText: "Nama Transaksi",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: amountC,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: "Jumlah (Rp)",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedCategory,
+                    decoration: InputDecoration(
+                      labelText: "Kategori",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    items: _categoryData.keys.map((cat) {
+                      return DropdownMenuItem(value: cat, child: Text(cat));
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() {
+                          selectedCategory = val;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Batal"),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final title = titleC.text.trim();
+                    final rawAmount = amountC.text
+                        .replaceAll('Rp', '')
+                        .replaceAll('rp', '')
+                        .replaceAll('.', '')
+                        .replaceAll(',', '')
+                        .replaceAll(' ', '')
+                        .trim();
+                    final amountVal = double.tryParse(rawAmount);
+
+                    if (title.isEmpty || amountVal == null || amountVal <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text(
+                            "Mohon isi nama transaksi dan jumlah angka dengan benar.",
+                          ),
+                          backgroundColor: Colors.redAccent,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    final updated = exp.copyWith(
+                      description: title,
+                      amount: amountVal.toInt(),
+                      category: selectedCategory,
+                    );
+
+                    await DbHelper.instance.updateExpense(updated);
+                    await _loadExpenses();
+
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text("Transaksi berhasil diperbarui!"),
+                        backgroundColor: const Color(0xFF3E9C5D),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0F172A),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text("Simpan Perubahan"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteExpense(ExpenseModel exp) {
+    if (exp.id == null) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+            SizedBox(width: 10),
+            Text(
+              "Hapus Transaksi",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ],
+        ),
+        content: Text(
+          "Apakah Anda yakin ingin menghapus '${exp.description ?? exp.category}'?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Batal"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await DbHelper.instance.deleteExpense(exp.id!);
+              await _loadExpenses();
+
+              if (!context.mounted) return;
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text("Pengeluaran berhasil dihapus."),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text("Hapus"),
+          ),
+        ],
       ),
     );
   }
 
   void _onNavTapped(int index) {
-    if (index == 3) return;
-
     switch (index) {
       case 0:
         Navigator.pushReplacement(
@@ -287,28 +524,31 @@ class _HalamanBudgetState extends State<HalamanBudget> {
   }
 
   String _formatCurrency(double amount) {
-    if (amount == amount.roundToDouble()) {
-      return "\$${amount.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
-    }
-    return "\$${amount.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
+    final int val = amount.round();
+    final formatted = val.toString().replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]}.',
+        );
+    return 'Rp $formatted';
   }
 
   @override
   Widget build(BuildContext context) {
-    const Color bgWarm = Color(0xFFFDFBF7);
-    const Color textNavy = Color(0xFF0F172A);
-    const Color textSlate = Color(0xFF64748B);
-    const Color naturalGreen = Color(0xFF3E9C5D);
-    const Color sandBeige = Color(0xFFEDE0CB);
-    const Color oceanBlue = Color(0xFF00668A);
+    const Color bgWarm = AppColors.background;
+    const Color textNavy = AppColors.textPrimary;
+    const Color textSlate = AppColors.textSecondary;
+    const Color sandBeige = AppColors.surfaceVariant;
+    const Color oceanBlue = AppColors.primaryDeep;
+    const Color naturalGreen = Color(0xFF2E7D32);
 
-    final spent = _totalSpent;
-    final remaining = _totalBudget - spent;
-    final progress = (spent / _totalBudget).clamp(0.0, 1.0);
+    final double spent = _totalSpent;
+    final double remaining = _totalBudget - spent;
+    final double progress = (_totalBudget > 0)
+        ? (spent / _totalBudget).clamp(0.0, 1.0)
+        : 0.0;
 
     return Scaffold(
       backgroundColor: bgWarm,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 70),
         child: FloatingActionButton.extended(
@@ -320,7 +560,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
           ),
           icon: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
           label: const Text(
-            "LOG ENTRY",
+            "CATAT TRANSAKSI",
             style: TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.w600,
@@ -339,7 +579,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
               SliverToBoxAdapter(
                 child: Stack(
                   children: [
-                    // Hero Image Banner with Fallback for Tests/Offline
+                    // Hero Image Banner
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(
                         bottom: Radius.circular(40),
@@ -385,7 +625,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      "TRAVEL JOURNAL",
+                                      "JURNAL PERJALANAN",
                                       style: TextStyle(
                                         fontFamily: 'Inter',
                                         fontSize: 12,
@@ -444,7 +684,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                               ),
                               const SizedBox(width: 10),
                               const Text(
-                                "Trips",
+                                "Anggaran",
                                 style: TextStyle(
                                   fontFamily: 'Plus Jakarta Sans',
                                   fontWeight: FontWeight.bold,
@@ -546,59 +786,74 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                                     MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        "TOTAL TRIP BUDGET",
-                                        style: TextStyle(
-                                          fontFamily: 'Inter',
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: textSlate,
-                                          letterSpacing: 0.8,
+                                  Expanded(
+                                    flex: 6,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          "TOTAL ANGGARAN TRIP",
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: textSlate,
+                                            letterSpacing: 0.8,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        _formatCurrency(_totalBudget),
-                                        style: const TextStyle(
-                                          fontFamily: 'Plus Jakarta Sans',
-                                          fontSize: 36,
-                                          fontWeight: FontWeight.bold,
-                                          color: textNavy,
-                                          height: 1.1,
+                                        const SizedBox(height: 4),
+                                        FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            _formatCurrency(_totalBudget),
+                                            style: const TextStyle(
+                                              fontFamily: 'Plus Jakarta Sans',
+                                              fontSize: 26,
+                                              fontWeight: FontWeight.bold,
+                                              color: textNavy,
+                                              height: 1.1,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      const Text(
-                                        "REMAINING",
-                                        style: TextStyle(
-                                          fontFamily: 'Inter',
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: textSlate,
-                                          letterSpacing: 0.8,
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    flex: 5,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        const Text(
+                                          "SISA ANGGARAN",
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: textSlate,
+                                            letterSpacing: 0.8,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        _formatCurrency(remaining),
-                                        style: TextStyle(
-                                          fontFamily: 'Plus Jakarta Sans',
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          color: remaining < 0
-                                              ? const Color(0xFFBA1A1A)
-                                              : naturalGreen,
+                                        const SizedBox(height: 4),
+                                        FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          alignment: Alignment.centerRight,
+                                          child: Text(
+                                            _formatCurrency(remaining),
+                                            style: TextStyle(
+                                              fontFamily: 'Plus Jakarta Sans',
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              color: remaining < 0
+                                                  ? const Color(0xFFBA1A1A)
+                                                  : naturalGreen,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -651,7 +906,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    "${_formatCurrency(spent)} Spent",
+                                    "${_formatCurrency(spent)} Terpakai",
                                     style: const TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 14,
@@ -660,7 +915,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                                     ),
                                   ),
                                   Text(
-                                    "${(progress * 100).toInt()}% Used",
+                                    "${(progress * 100).toInt()}% Terpakai",
                                     style: const TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 12,
@@ -678,7 +933,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
 
                       // Spending Highlights Section
                       const Text(
-                        "Spending Highlights",
+                        "Ringkasan Pengeluaran",
                         style: TextStyle(
                           fontFamily: 'Plus Jakarta Sans',
                           fontSize: 22,
@@ -763,13 +1018,16 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Text(
-                                      _formatCurrency(catSpent),
-                                      style: const TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: textNavy,
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        _formatCurrency(catSpent),
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: textNavy,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 4),
@@ -800,28 +1058,11 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                           );
                         },
                       ),
-                      const SizedBox(height: 12),
-
-                      Center(
-                        child: TextButton(
-                          onPressed: () {},
-                          child: const Text(
-                            "VIEW FULL BREAKDOWN",
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: oceanBlue,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                        ),
-                      ),
                       const SizedBox(height: 24),
 
-                      // Recent Memories Section
+                      // Riwayat Transaksi Section
                       const Text(
-                        "Recent Memories",
+                        "Riwayat Transaksi",
                         style: TextStyle(
                           fontFamily: 'Plus Jakarta Sans',
                           fontSize: 22,
@@ -831,7 +1072,14 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                       ),
                       const SizedBox(height: 16),
 
-                      if (_recentExpenses.isEmpty)
+                      if (_isLoading)
+                        const Padding(
+                          padding: EdgeInsets.all(32),
+                          child: Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      else if (_dbExpenses.isEmpty)
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(28),
@@ -856,13 +1104,12 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                         ListView.separated(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _recentExpenses.length,
+                          itemCount: _dbExpenses.length,
                           separatorBuilder: (context, index) =>
                               const SizedBox(height: 12),
                           itemBuilder: (context, index) {
-                            final item = _recentExpenses[index];
-                            final catInfo =
-                                _categoryData[item['category']] ??
+                            final item = _dbExpenses[index];
+                            final catInfo = _categoryData[item.category] ??
                                 {
                                   'icon': Icons.receipt_rounded,
                                   'color': oceanBlue,
@@ -887,42 +1134,18 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                               ),
                               child: Row(
                                 children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(18),
-                                    child: item['image'] != null
-                                        ? Image.network(
-                                            item['image'] as String,
-                                            width: 56,
-                                            height: 56,
-                                            fit: BoxFit.cover,
-                                            errorBuilder:
-                                                (context, error, stackTrace) =>
-                                                    Container(
-                                                      width: 56,
-                                                      height: 56,
-                                                      color:
-                                                          catInfo['bgColor']
-                                                              as Color,
-                                                      child: Icon(
-                                                        catInfo['icon']
-                                                            as IconData,
-                                                        color:
-                                                            catInfo['color']
-                                                                as Color,
-                                                        size: 26,
-                                                      ),
-                                                    ),
-                                          )
-                                        : Container(
-                                            width: 56,
-                                            height: 56,
-                                            color: catInfo['bgColor'] as Color,
-                                            child: Icon(
-                                              catInfo['icon'] as IconData,
-                                              color: catInfo['color'] as Color,
-                                              size: 26,
-                                            ),
-                                          ),
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: catInfo['bgColor'] as Color,
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Icon(
+                                      catInfo['icon'] as IconData,
+                                      color: catInfo['color'] as Color,
+                                      size: 24,
+                                    ),
                                   ),
                                   const SizedBox(width: 14),
                                   Expanded(
@@ -931,7 +1154,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          item['title'] as String,
+                                          item.description ?? item.category,
                                           style: const TextStyle(
                                             fontFamily: 'Plus Jakarta Sans',
                                             fontSize: 16,
@@ -941,10 +1164,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          (item['date'] ??
-                                                  item['subtitle'] ??
-                                                  '')
-                                              as String,
+                                          item.date,
                                           style: const TextStyle(
                                             fontFamily: 'Inter',
                                             fontSize: 13,
@@ -958,26 +1178,42 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        _formatCurrency(
-                                          item['amount'] as double,
-                                        ),
+                                        _formatCurrency(item.amount.toDouble()),
                                         style: const TextStyle(
                                           fontFamily: 'Inter',
-                                          fontSize: 17,
+                                          fontSize: 16,
                                           fontWeight: FontWeight.bold,
                                           color: textNavy,
                                         ),
                                       ),
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.delete_outline_rounded,
-                                          color: textSlate,
-                                          size: 18,
-                                        ),
-                                        onPressed: () =>
-                                            _deleteExpense(item['id'] as int),
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.edit_note_rounded,
+                                              color: oceanBlue,
+                                              size: 20,
+                                            ),
+                                            onPressed: () =>
+                                                _showEditExpenseDialog(item),
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete_outline_rounded,
+                                              color: Colors.redAccent,
+                                              size: 18,
+                                            ),
+                                            onPressed: () =>
+                                                _confirmDeleteExpense(item),
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
@@ -995,10 +1231,12 @@ class _HalamanBudgetState extends State<HalamanBudget> {
           ),
         ],
       ),
-      bottomNavigationBar: CustomFloatingNavBar(
-        selectedIndex: 3,
-        onDestinationSelected: _onNavTapped,
-      ),
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomFloatingNavBar(
+              selectedIndex: 3,
+              onDestinationSelected: _onNavTapped,
+            ),
     );
   }
 }

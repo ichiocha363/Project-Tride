@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:project_tride/Constants/app_colors.dart';
 import 'package:project_tride/Database/db_helper.dart';
 import 'package:project_tride/Database/destination_model.dart';
 import 'package:project_tride/Database/favorite_model.dart';
 import 'package:project_tride/Database/user_model.dart';
+import 'package:project_tride/Widgets/category_filter_bar.dart';
+import 'package:project_tride/Widgets/destination_grid_card.dart';
+import 'package:project_tride/Widgets/destination_hero_card.dart';
 import '../halaman beranda/halaman_destination_detail.dart';
 
 class HalamanSavedPlaces extends StatefulWidget {
@@ -19,16 +23,6 @@ class HalamanSavedPlaces extends StatefulWidget {
 class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
   String _selectedCategory = 'All';
   bool _isLoading = true;
-
-  // Stitch Design Color Tokens
-  static const Color primaryBlue = Color(0xFF004AC6);
-  static const Color primaryContainer = Color(0xFF2563EB);
-  static const Color bgCloud = Color(0xFFF8FAFC);
-  static const Color textNavy = Color(0xFF0F172A);
-  static const Color textSlate = Color(0xFF64748B);
-  static const Color warmYellow = Color(0xFFFDB813);
-  static const Color surfaceLow = Color(0xFFF3F3FE);
-  static const Color primaryFixed = Color(0xFFDBE1FF);
 
   final List<String> _categories = [
     'All',
@@ -123,6 +117,45 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
       estimatedBudget: 4800000,
       bestTime: 'Dec - Mar',
     ),
+    DestinationModel(
+      id: 7,
+      name: 'Tokyo',
+      location: 'Japan · Urban',
+      description:
+          'Futuristic metropolis blending ultramodern skyscrapers with historic temples.',
+      image:
+          'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=600&auto=format&fit=crop',
+      category: 'Urban',
+      rating: 4.9,
+      estimatedBudget: 3800000,
+      bestTime: 'Mar - May',
+    ),
+    DestinationModel(
+      id: 8,
+      name: 'Santorini',
+      location: 'Greece · Relax',
+      description:
+          'White-washed cliffside villas overlooking dramatic Aegean Sea views.',
+      image:
+          'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?q=80&w=600&auto=format&fit=crop',
+      category: 'Relax',
+      rating: 4.9,
+      estimatedBudget: 4200000,
+      bestTime: 'May - Sep',
+    ),
+    DestinationModel(
+      id: 9,
+      name: 'Labuan Bajo',
+      location: 'Indonesia · Nature',
+      description:
+          'Gateway to Komodo National Park with pristine beaches and island adventures.',
+      image:
+          'https://images.unsplash.com/photo-1516690561799-46d8f74f9abf?q=80&w=600&auto=format&fit=crop',
+      category: 'Nature',
+      rating: 4.8,
+      estimatedBudget: 2800000,
+      bestTime: 'Apr - Oct',
+    ),
   ];
 
   @override
@@ -138,13 +171,10 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
       final userId = widget.user?.id ?? 1;
 
       // Ensure seed destinations exist in SQLite
-      List<DestinationModel> dbDestinations = await db.getDestinations();
-      if (dbDestinations.isEmpty) {
-        for (var dest in _initialSeedDestinations) {
-          await db.insertDestination(dest);
-        }
-        dbDestinations = await db.getDestinations();
+      for (var dest in _initialSeedDestinations) {
+        await db.ensureDestinationExists(dest);
       }
+      List<DestinationModel> dbDestinations = await db.getDestinations();
 
       // Seed initial favorites once per user if never seeded before
       final prefs = await SharedPreferences.getInstance();
@@ -219,7 +249,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
 
         messenger.showSnackBar(
           SnackBar(
-            backgroundColor: textNavy,
+            backgroundColor: AppColors.textPrimary,
             content: Text('${destination.name} removed from Saved Places'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -287,7 +317,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
         : places;
 
     return Scaffold(
-      backgroundColor: bgCloud,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -301,13 +331,13 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
                     child: Container(
                       width: 40,
                       height: 40,
-                      decoration: BoxDecoration(
-                        color: surfaceLow,
+                      decoration: const BoxDecoration(
+                        color: AppColors.surfaceLow,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.arrow_back_rounded,
-                        color: textNavy,
+                        color: AppColors.textPrimary,
                         size: 22,
                       ),
                     ),
@@ -322,14 +352,16 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
                           style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.bold,
-                            color: textNavy,
-                            fontFamily: 'Plus Jakarta Sans',
+                            color: AppColors.textPrimary,
                           ),
                         ),
                         SizedBox(height: 2),
                         Text(
                           "Your personal travel wishlist",
-                          style: TextStyle(fontSize: 13, color: textSlate),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -340,7 +372,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: primaryFixed,
+                      color: AppColors.primaryFixed,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -350,13 +382,13 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: primaryBlue,
+                            color: AppColors.primaryDeep,
                           ),
                         ),
                         const SizedBox(width: 4),
                         const Icon(
                           Icons.favorite_rounded,
-                          color: primaryBlue,
+                          color: AppColors.primaryDeep,
                           size: 16,
                         ),
                       ],
@@ -367,47 +399,14 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
             ),
 
             // 2. Category Filter Horizontal Bar
-            SizedBox(
-              height: 44,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: _categories.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final cat = _categories[index];
-                  final isSelected = _selectedCategory == cat;
-                  return ChoiceChip(
-                    label: Text(
-                      cat,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.w500,
-                        color: isSelected
-                            ? Colors.white
-                            : const Color(0xFF434655),
-                      ),
-                    ),
-                    selected: isSelected,
-                    selectedColor: primaryContainer,
-                    backgroundColor: surfaceLow,
-                    showCheckmark: false,
-                    side: BorderSide.none,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() {
-                          _selectedCategory = cat;
-                        });
-                      }
-                    },
-                  );
-                },
-              ),
+            CategoryFilterBar(
+              categories: _categories,
+              selectedCategory: _selectedCategory,
+              onCategorySelected: (cat) {
+                setState(() {
+                  _selectedCategory = cat;
+                });
+              },
             ),
             const SizedBox(height: 16),
 
@@ -415,7 +414,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
             Expanded(
               child: _isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(color: primaryBlue),
+                      child: CircularProgressIndicator(color: AppColors.primaryDeep),
                     )
                   : places.isEmpty
                   ? _buildEmptyState()
@@ -424,8 +423,31 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 3. Featured Hero Card (Stitch Rome Concept)
-                          if (heroPlace != null) _buildHeroCard(heroPlace),
+                          // 3. Featured Hero Card
+                          if (heroPlace != null)
+                            DestinationHeroCard(
+                              title: heroPlace.name,
+                              location: heroPlace.location,
+                              imageUrl: heroPlace.image,
+                              rating: heroPlace.rating,
+                              isFavorite: _favoriteIds.contains(heroPlace.id),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => HalamanDestinationDetail(
+                                      user: widget.user,
+                                      destinationTitle: heroPlace.name,
+                                      categoryTag: heroPlace.category.toUpperCase(),
+                                      imageUrl: heroPlace.image,
+                                      rating: heroPlace.rating.toString(),
+                                      description: heroPlace.description,
+                                    ),
+                                  ),
+                                );
+                              },
+                              onFavoriteTap: () => _toggleFavorite(heroPlace),
+                            ),
 
                           const SizedBox(height: 24),
 
@@ -436,8 +458,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: textNavy,
-                                fontFamily: 'Plus Jakarta Sans',
+                                color: AppColors.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 14),
@@ -449,14 +470,36 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
                               itemCount: gridPlaces.length,
                               gridDelegate:
                                   const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    childAspectRatio: 0.76,
-                                    crossAxisSpacing: 14,
-                                    mainAxisSpacing: 14,
-                                  ),
+                                crossAxisCount: 2,
+                                childAspectRatio: 0.76,
+                                crossAxisSpacing: 14,
+                                mainAxisSpacing: 14,
+                              ),
                               itemBuilder: (context, index) {
                                 final place = gridPlaces[index];
-                                return _buildGridCard(place);
+                                return DestinationGridCard(
+                                  title: place.name,
+                                  location: place.location,
+                                  imageUrl: place.image,
+                                  rating: place.rating,
+                                  isFavorite: _favoriteIds.contains(place.id),
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => HalamanDestinationDetail(
+                                          user: widget.user,
+                                          destinationTitle: place.name,
+                                          categoryTag: place.category.toUpperCase(),
+                                          imageUrl: place.image,
+                                          rating: place.rating.toString(),
+                                          description: place.description,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  onFavoriteTap: () => _toggleFavorite(place),
+                                );
                               },
                             ),
                           ],
@@ -471,332 +514,6 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
     );
   }
 
-  Widget _buildHeroCard(DestinationModel place) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanDestinationDetail(
-              user: widget.user,
-              destinationTitle: place.name,
-              categoryTag: place.category.toUpperCase(),
-              imageUrl: place.image,
-              rating: place.rating.toString(),
-              description: place.description,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        height: 210,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            children: [
-              // Background Image
-              Positioned.fill(
-                child: Image.network(
-                  place.image,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: const Color(0xFFE1E2ED),
-                    child: const Icon(
-                      Icons.landscape_rounded,
-                      size: 48,
-                      color: textSlate,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Gradient Overlay
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.2),
-                        Colors.black.withValues(alpha: 0.85),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // Favorite Toggle Button (Top Right)
-              Positioned(
-                top: 14,
-                right: 14,
-                child: GestureDetector(
-                  onTap: () => _toggleFavorite(place),
-                  child: Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 6,
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      _favoriteIds.contains(place.id)
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      color: primaryBlue,
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Hero Card Content (Bottom)
-              Positioned(
-                bottom: 16,
-                left: 16,
-                right: 16,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            place.name,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontFamily: 'Plus Jakarta Sans',
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            place.location,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.white.withValues(alpha: 0.85),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Rating Pill (Glassmorphism effect)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.25),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.star_rounded,
-                            color: warmYellow,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            place.rating.toString(),
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGridCard(DestinationModel place) {
-    final isFav = _favoriteIds.contains(place.id);
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanDestinationDetail(
-              user: widget.user,
-              destinationTitle: place.name,
-              categoryTag: place.category.toUpperCase(),
-              imageUrl: place.image,
-              rating: place.rating.toString(),
-              description: place.description,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            children: [
-              // Background Image
-              Positioned.fill(
-                child: Image.network(
-                  place.image,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: const Color(0xFFE1E2ED),
-                    child: const Icon(
-                      Icons.landscape_rounded,
-                      size: 36,
-                      color: textSlate,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Dark Gradient Overlay
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.1),
-                        Colors.black.withValues(alpha: 0.85),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // Favorite Icon Top-Right
-              Positioned(
-                top: 10,
-                right: 10,
-                child: GestureDetector(
-                  onTap: () => _toggleFavorite(place),
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      isFav
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      color: primaryBlue,
-                      size: 17,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Card Bottom Info
-              Positioned(
-                bottom: 12,
-                left: 12,
-                right: 12,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            place.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontFamily: 'Plus Jakarta Sans',
-                            ),
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.star_rounded,
-                              color: warmYellow,
-                              size: 14,
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              place.rating.toString(),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      place.category,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -804,14 +521,14 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
         children: [
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: surfaceLow,
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceLow,
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.favorite_border_rounded,
               size: 56,
-              color: primaryBlue,
+              color: AppColors.primaryDeep,
             ),
           ),
           const SizedBox(height: 16),
@@ -820,8 +537,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: textNavy,
-              fontFamily: 'Plus Jakarta Sans',
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -830,7 +546,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
             child: Text(
               "Explore destinations and tap the heart icon to add them to your wishlist.",
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: textSlate),
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
           ),
         ],

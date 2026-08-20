@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:getwidget/getwidget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:project_tride/Constants/app_colors.dart';
+import 'package:project_tride/Database/db_helper.dart';
 import 'package:project_tride/Database/user_model.dart';
 
 class HalamanPersonalInfo extends StatefulWidget {
@@ -12,16 +15,16 @@ class HalamanPersonalInfo extends StatefulWidget {
 }
 
 class _HalamanPersonalInfoState extends State<HalamanPersonalInfo> {
-  // Stitch Refined Color Tokens
-  static const Color bgCloud = Color(0xFFF8FAFC);
-  static const Color primaryBlue = Color(0xFF2563EB);
-  static const Color textNavy = Color(0xFF0F172A);
-  static const Color textSlate = Color(0xFF64748B);
-  static const Color surfaceCard = Color(0xFFFFFFFF);
-  static const Color outlineVariant = Color(0xFFC3C6D7);
-  static const Color sunsetOrange = Color(0xFFFB7A3C);
-  static const Color naturalGreen = Color(0xFF3E9C5D);
-  static const Color warmYellow = Color(0xFFFDB813);
+  // Color Tokens mapped to AppColors
+  static const Color bgCloud = AppColors.background;
+  static const Color primaryBlue = AppColors.primary;
+  static const Color textNavy = AppColors.textPrimary;
+  static const Color textSlate = AppColors.textSecondary;
+  static const Color surfaceCard = AppColors.surface;
+  static const Color outlineVariant = AppColors.surfaceVariant;
+  static const Color sunsetOrange = AppColors.sunsetOrange;
+  static const Color naturalGreen = AppColors.nature;
+  static const Color warmYellow = AppColors.warning;
 
   // Profile Information State
   late String _displayName;
@@ -61,6 +64,60 @@ class _HalamanPersonalInfoState extends State<HalamanPersonalInfo> {
     _favoriteDestination = 'Bali, Indonesia';
     _language = 'Indonesian';
     _currency = 'IDR — Indonesian Rupiah';
+
+    _loadFromPrefs();
+  }
+
+  Future<void> _loadFromPrefs() async {
+    final userId = widget.user?.id ?? 1;
+    final prefs = await SharedPreferences.getInstance();
+
+    if (mounted) {
+      setState(() {
+        _displayName = prefs.getString('user_name_$userId') ?? _displayName;
+        _username = prefs.getString('user_username_$userId') ?? _username;
+        _bio = prefs.getString('user_bio_$userId') ?? _bio;
+        _email = prefs.getString('user_email_$userId') ?? _email;
+        _phone = prefs.getString('user_phone_$userId') ?? _phone;
+        _location = prefs.getString('user_location_$userId') ?? _location;
+        _avatarUrl = prefs.getString('user_avatar_$userId') ?? _avatarUrl;
+        _favoriteDestination =
+            prefs.getString('user_favorite_dest_$userId') ?? _favoriteDestination;
+        _language = prefs.getString('user_language_$userId') ?? _language;
+        _currency = prefs.getString('user_currency_$userId') ?? _currency;
+      });
+    }
+  }
+
+  Future<void> _saveProfileData() async {
+    final userId = widget.user?.id ?? 1;
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString('user_name_$userId', _displayName);
+    await prefs.setString('user_username_$userId', _username);
+    await prefs.setString('user_bio_$userId', _bio);
+    await prefs.setString('user_email_$userId', _email);
+    await prefs.setString('user_phone_$userId', _phone);
+    await prefs.setString('user_location_$userId', _location);
+    await prefs.setString('user_avatar_$userId', _avatarUrl);
+    await prefs.setString('user_favorite_dest_$userId', _favoriteDestination);
+    await prefs.setString('user_language_$userId', _language);
+    await prefs.setString('user_currency_$userId', _currency);
+
+    if (widget.user != null && widget.user!.id != null) {
+      try {
+        final existingUser =
+            await DbHelper.instance.getUserById(widget.user!.id!);
+        if (existingUser != null) {
+          final updatedUser = existingUser.copyWith(
+            name: _displayName,
+            email: _email,
+            profileImage: _avatarUrl,
+          );
+          await DbHelper.instance.updateUser(updatedUser);
+        }
+      } catch (_) {}
+    }
   }
 
   void _showEditProfileDialog() {
@@ -119,13 +176,16 @@ class _HalamanPersonalInfoState extends State<HalamanPersonalInfo> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
+                      final nav = Navigator.of(context);
                       setState(() {
                         _displayName = nameController.text.trim();
                         _username = usernameController.text.trim();
                         _bio = bioController.text.trim();
                       });
-                      Navigator.pop(context);
+                      await _saveProfileData();
+                      if (!mounted) return;
+                      nav.pop();
                       GFToast.showToast(
                         'Profile updated successfully',
                         context,
@@ -206,12 +266,21 @@ class _HalamanPersonalInfoState extends State<HalamanPersonalInfo> {
               child: const Text('Cancel', style: TextStyle(color: textSlate)),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                final nav = Navigator.of(context);
                 final val = controller.text.trim();
                 if (val.isNotEmpty) {
                   onSave(val);
+                  await _saveProfileData();
                 }
-                Navigator.pop(context);
+                if (!mounted) return;
+                nav.pop();
+                GFToast.showToast(
+                  '$title updated successfully',
+                  context,
+                  toastPosition: GFToastPosition.BOTTOM,
+                  toastDuration: 2,
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryBlue,
@@ -288,9 +357,18 @@ class _HalamanPersonalInfoState extends State<HalamanPersonalInfo> {
                           color: primaryBlue,
                         )
                       : null,
-                  onTap: () {
+                  onTap: () async {
+                    final nav = Navigator.of(context);
                     onSelect(option);
-                    Navigator.pop(context);
+                    await _saveProfileData();
+                    if (!mounted) return;
+                    nav.pop();
+                    GFToast.showToast(
+                      '$title updated successfully',
+                      context,
+                      toastPosition: GFToastPosition.BOTTOM,
+                      toastDuration: 2,
+                    );
                   },
                 );
               }),

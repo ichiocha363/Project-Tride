@@ -1,120 +1,133 @@
+import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
 import 'package:flutter/material.dart';
+import '../Constants/app_colors.dart';
 
-class CustomFloatingNavBar extends StatelessWidget {
+class CustomFloatingNavBar extends StatefulWidget {
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
+  final PageController? pageController;
 
   const CustomFloatingNavBar({
     super.key,
     required this.selectedIndex,
     required this.onDestinationSelected,
+    this.pageController,
   });
 
   @override
+  State<CustomFloatingNavBar> createState() => _CustomFloatingNavBarState();
+}
+
+class _CustomFloatingNavBarState extends State<CustomFloatingNavBar> {
+  late final NotchBottomBarController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = NotchBottomBarController(index: widget.selectedIndex);
+  }
+
+  @override
+  void didUpdateWidget(covariant CustomFloatingNavBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedIndex != widget.selectedIndex) {
+      _controller.index = widget.selectedIndex;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    const Color activeColor = Color(0xFF004AC6);
-    const Color inactiveColor = Color(0xFF64748B);
+    const Color activeColor = AppColors.primaryDeep;
+    const Color inactiveColor = AppColors.textSecondary;
 
-    final List<_NavBarItemData> items = [
-      const _NavBarItemData(
-        label: 'Home',
-        icon: Icons.home_outlined,
-        activeIcon: Icons.home_rounded,
+    return AnimatedNotchBottomBar(
+      notchBottomBarController: _controller,
+      color: Colors.white,
+      showLabel: true,
+      notchColor: activeColor,
+      removeMargins: false,
+      bottomBarWidth: 500,
+      showShadow: true,
+      itemLabelStyle: const TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w600,
+        color: inactiveColor,
+        fontFamily: 'Plus Jakarta Sans',
       ),
-      const _NavBarItemData(
-        label: 'Explore',
-        icon: Icons.explore_outlined,
-        activeIcon: Icons.explore_rounded,
-      ),
-      const _NavBarItemData(
-        label: 'Trips',
-        icon: Icons.luggage_outlined,
-        activeIcon: Icons.luggage_rounded,
-      ),
-      const _NavBarItemData(
-        label: 'Budget',
-        icon: Icons.account_balance_wallet_outlined,
-        activeIcon: Icons.account_balance_wallet_rounded,
-      ),
-      const _NavBarItemData(
-        label: 'Profile',
-        icon: Icons.person_outline_rounded,
-        activeIcon: Icons.person_rounded,
-      ),
-    ];
-
-    return Container(
-      margin: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(40),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            spreadRadius: 1,
-            offset: const Offset(0, 6),
+      bottomBarItems: const [
+        BottomBarItem(
+          inActiveItem: Icon(
+            Icons.home_outlined,
+            color: inactiveColor,
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: List.generate(items.length, (index) {
-            final isSelected = selectedIndex == index;
-            final item = items[index];
-            return Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onDestinationSelected(index),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Active indicator dot
-                    Container(
-                      width: 5,
-                      height: 5,
-                      margin: const EdgeInsets.only(bottom: 3),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isSelected ? activeColor : Colors.transparent,
-                      ),
-                    ),
-                    Icon(
-                      isSelected ? item.activeIcon : item.icon,
-                      color: isSelected ? activeColor : inactiveColor,
-                      size: 24,
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      item.label,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                        color: isSelected ? activeColor : inactiveColor,
-                        fontFamily: 'Plus Jakarta Sans',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
+          activeItem: _AnimatedNavIcon(icon: Icons.home_rounded),
+          itemLabel: 'Beranda',
         ),
-      ),
+        BottomBarItem(
+          inActiveItem: Icon(
+            Icons.explore_outlined,
+            color: inactiveColor,
+          ),
+          activeItem: _AnimatedNavIcon(icon: Icons.explore_rounded),
+          itemLabel: 'Jelajah',
+        ),
+        BottomBarItem(
+          inActiveItem: Icon(
+            Icons.luggage_outlined,
+            color: inactiveColor,
+          ),
+          activeItem: _AnimatedNavIcon(icon: Icons.luggage_rounded),
+          itemLabel: 'AI Planner',
+        ),
+        BottomBarItem(
+          inActiveItem: Icon(
+            Icons.account_balance_wallet_outlined,
+            color: inactiveColor,
+          ),
+          activeItem: _AnimatedNavIcon(icon: Icons.account_balance_wallet_rounded),
+          itemLabel: 'Anggaran',
+        ),
+        BottomBarItem(
+          inActiveItem: Icon(
+            Icons.person_outline_rounded,
+            color: inactiveColor,
+          ),
+          activeItem: _AnimatedNavIcon(icon: Icons.person_rounded),
+          itemLabel: 'Profil',
+        ),
+      ],
+      onTap: (index) {
+        widget.onDestinationSelected(index);
+      },
+      kIconSize: 22.0,
+      kBottomRadius: 24.0,
     );
   }
 }
 
-class _NavBarItemData {
-  final String label;
+class _AnimatedNavIcon extends StatelessWidget {
   final IconData icon;
-  final IconData activeIcon;
 
-  const _NavBarItemData({
-    required this.label,
-    required this.icon,
-    required this.activeIcon,
-  });
+  const _AnimatedNavIcon({required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(icon),
+      tween: Tween<double>(begin: 0.4, end: 1.0),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.elasticOut,
+      builder: (context, scale, child) {
+        return Transform.scale(
+          scale: scale,
+          child: child,
+        );
+      },
+      child: Icon(
+        icon,
+        color: Colors.white,
+        size: 24,
+      ),
+    );
+  }
 }

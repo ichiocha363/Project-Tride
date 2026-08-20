@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:project_tride/Database/database_helper.dart';
-import 'package:project_tride/Views/halaman beranda/halaman_beranda.dart';
+import 'package:project_tride/Views/halaman_utama.dart';
 import 'package:project_tride/Views/halaman_register.dart';
 import 'package:project_tride/utils/session_manager.dart';
 
@@ -70,7 +70,7 @@ class _HalamanLoginState extends State<HalamanLogin> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HalamanBeranda(user: user),
+            builder: (context) => HalamanUtama(user: user),
           ),
         );
       } else {

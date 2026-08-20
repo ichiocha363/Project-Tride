@@ -9,8 +9,13 @@ import 'halaman_aiplanner_step2.dart' as step2;
 
 class HalamanAiPlanner extends StatefulWidget {
   final UserModel? user;
+  final bool isEmbeddedInShell;
 
-  const HalamanAiPlanner({super.key, this.user});
+  const HalamanAiPlanner({
+    super.key,
+    this.user,
+    this.isEmbeddedInShell = false,
+  });
 
   @override
   State<HalamanAiPlanner> createState() => _HalamanAiPlannerState();
@@ -663,10 +668,12 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
         ],
       ),
       // Integrated Floating Bottom Navigation Bar
-      bottomNavigationBar: CustomFloatingNavBar(
-        selectedIndex: 2,
-        onDestinationSelected: _onNavTapped,
-      ),
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomFloatingNavBar(
+              selectedIndex: 2,
+              onDestinationSelected: _onNavTapped,
+            ),
     );
   }
 }
