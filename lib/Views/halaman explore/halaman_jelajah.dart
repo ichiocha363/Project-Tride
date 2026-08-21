@@ -17,11 +17,7 @@ class HalamanJelajah extends StatefulWidget {
   final UserModel? user;
   final bool isEmbeddedInShell;
 
-  const HalamanJelajah({
-    super.key,
-    this.user,
-    this.isEmbeddedInShell = false,
-  });
+  const HalamanJelajah({super.key, this.user, this.isEmbeddedInShell = false});
 
   @override
   State<HalamanJelajah> createState() => _HalamanJelajahState();
@@ -180,7 +176,8 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
 
     final filteredList = _trendingDestinations.where((item) {
       final matchesQuery = item['title'].toLowerCase().contains(query);
-      final matchesCategory = selectedCategory == 'Semua' ||
+      final matchesCategory =
+          selectedCategory == 'Semua' ||
           selectedCategory == 'All' ||
           item['category'] == selectedCategory;
       return matchesQuery && matchesCategory;

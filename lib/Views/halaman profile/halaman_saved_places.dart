@@ -176,25 +176,19 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
       }
       List<DestinationModel> dbDestinations = await db.getDestinations();
 
-      // Seed initial favorites once per user if never seeded before
+      // Ensure default saved places start empty for users.
+      // Clean up old auto-seeded favorites once if present from previous version
       final prefs = await SharedPreferences.getInstance();
-      final seedKey = 'has_seeded_favorites_v3_$userId';
-      final hasSeeded = prefs.getBool(seedKey) ?? false;
-
-      if (!hasSeeded) {
-        final now = DateTime.now().toIso8601String();
+      final cleanupKey = 'has_cleared_auto_seed_v1_$userId';
+      final hasClearedAutoSeed = prefs.getBool(cleanupKey) ?? false;
+      if (!hasClearedAutoSeed) {
+        // Clear initial auto-seeded favorites for a fresh empty starting state
         for (var dest in dbDestinations) {
           if (dest.id != null) {
-            await db.addFavorite(
-              FavoriteModel(
-                userId: userId,
-                destinationId: dest.id!,
-                createdAt: now,
-              ),
-            );
+            await db.removeFavorite(userId, dest.id!);
           }
         }
-        await prefs.setBool(seedKey, true);
+        await prefs.setBool(cleanupKey, true);
       }
 
       final updatedFavorites = await db.getFavoritesByUser(userId);

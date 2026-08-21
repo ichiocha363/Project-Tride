@@ -47,7 +47,6 @@ class HalamanDestinationDetail extends StatefulWidget {
 }
 
 class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
-  bool _isBookmarked = false;
   bool _isFavorited = false;
   final int _currentNavIndex = 1;
 
@@ -78,8 +77,10 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
   Future<void> _checkFavoriteStatus() async {
     try {
       final userId = widget.user?.id ?? 1;
-      final isFav =
-          await DbHelper.instance.isFavorite(userId, _getDestinationId());
+      final isFav = await DbHelper.instance.isFavorite(
+        userId,
+        _getDestinationId(),
+      );
       if (mounted) {
         setState(() {
           _isFavorited = isFav;
@@ -359,13 +360,20 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
             ),
           ),
 
-          // Top Action Controls (Back Button & Bookmark Button)
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+          // Top Action Controls (Back Button & Favorite Button)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
                   // Back Button
                   GestureDetector(
                     onTap: () {
@@ -417,18 +425,22 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
 
                           try {
                             if (_isFavorited) {
-                              await DbHelper.instance
-                                  .removeFavorite(userId, destId);
+                              await DbHelper.instance.removeFavorite(
+                                userId,
+                                destId,
+                              );
                               if (mounted) {
                                 setState(() {
                                   _isFavorited = false;
                                 });
-                                ScaffoldMessenger.of(context)
-                                    .removeCurrentSnackBar();
+                                ScaffoldMessenger.of(
+                                  context,
+                                ).removeCurrentSnackBar();
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                        '$name dihapus dari Saved Places'),
+                                      '$name dihapus dari Saved Places',
+                                    ),
                                     duration: const Duration(seconds: 1),
                                     behavior: SnackBarBehavior.floating,
                                   ),
@@ -495,51 +507,13 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      // Bookmark Button
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _isBookmarked = !_isBookmarked;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                _isBookmarked
-                                    ? '${widget.destinationTitle} disimpan ke favorit'
-                                    : '${widget.destinationTitle} dihapus dari favorit',
-                              ),
-                              duration: const Duration(seconds: 2),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
-                        child: Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.35),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.25),
-                              width: 1,
-                            ),
-                          ),
-                          child: Icon(
-                            _isBookmarked
-                                ? Icons.bookmark_rounded
-                                : Icons.bookmark_border_rounded,
-                            color: _isBookmarked ? warmYellow : Colors.white,
-                            size: 22,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ],
               ),
             ),
           ),
+        ),
 
           // Bottom Hero Text & Tag
           Positioned(
@@ -578,6 +552,8 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
                 // Hero Title
                 Text(
                   widget.destinationTitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 32,
@@ -682,6 +658,7 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
           const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 value,
@@ -736,28 +713,30 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Hal Menarik',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: textNavy,
-                    fontFamily: 'Plus Jakarta Sans',
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Hal Menarik',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: textNavy,
+                      fontFamily: 'Plus Jakarta Sans',
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  width: 32,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: primaryBlue,
-                    borderRadius: BorderRadius.circular(2),
+                  const SizedBox(height: 4),
+                  Container(
+                    width: 32,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: primaryBlue,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             GestureDetector(
               onTap: () {
@@ -927,7 +906,7 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
 
         // Horizontal List
         SizedBox(
-          height: 220,
+          height: 235,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -1020,6 +999,8 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
                     const SizedBox(height: 2),
                     Text(
                       item['subtitle'] as String,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 13, color: textSlate),
                     ),
                   ],
@@ -1258,6 +1239,7 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
                 Positioned(
                   bottom: 12,
                   left: 14,
+                  right: 14,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -1268,6 +1250,7 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
                           Icons.place_rounded,
@@ -1275,12 +1258,16 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
                           color: primaryBlue,
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          widget.destinationTitle,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: textNavy,
+                        Expanded(
+                          child: Text(
+                            widget.destinationTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: textNavy,
+                            ),
                           ),
                         ),
                       ],
