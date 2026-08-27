@@ -21,16 +21,16 @@ class HalamanSavedPlaces extends StatefulWidget {
 }
 
 class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
-  String _selectedCategory = 'All';
+  String _selectedCategory = 'Semua';
   bool _isLoading = true;
 
   final List<String> _categories = [
-    'All',
-    'Nature',
-    'Urban',
-    'Relax',
-    'Culture',
-    'Adventure',
+    'Semua',
+    'Pantai',
+    'Pegunungan',
+    'Perkotaan',
+    'Pedesaan',
+    'Alam',
   ];
 
   // List of saved places loaded from DB or default initial seed
@@ -51,6 +51,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
       rating: 4.8,
       estimatedBudget: 2500000,
       bestTime: 'May - Oct',
+      placeType: 'Perkotaan',
     ),
     DestinationModel(
       id: 2,
@@ -64,6 +65,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
       rating: 4.9,
       estimatedBudget: 4500000,
       bestTime: 'Nov - Apr',
+      placeType: 'Pantai',
     ),
     DestinationModel(
       id: 3,
@@ -77,6 +79,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
       rating: 4.8,
       estimatedBudget: 3200000,
       bestTime: 'Mar - May',
+      placeType: 'Perkotaan',
     ),
     DestinationModel(
       id: 4,
@@ -90,6 +93,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
       rating: 4.9,
       estimatedBudget: 5000000,
       bestTime: 'Sep - Mar',
+      placeType: 'Alam',
     ),
     DestinationModel(
       id: 5,
@@ -103,6 +107,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
       rating: 4.7,
       estimatedBudget: 2200000,
       bestTime: 'Oct - Apr',
+      placeType: 'Perkotaan',
     ),
     DestinationModel(
       id: 6,
@@ -116,6 +121,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
       rating: 4.8,
       estimatedBudget: 4800000,
       bestTime: 'Dec - Mar',
+      placeType: 'Pegunungan',
     ),
     DestinationModel(
       id: 7,
@@ -129,6 +135,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
       rating: 4.9,
       estimatedBudget: 3800000,
       bestTime: 'Mar - May',
+      placeType: 'Perkotaan',
     ),
     DestinationModel(
       id: 8,
@@ -142,6 +149,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
       rating: 4.9,
       estimatedBudget: 4200000,
       bestTime: 'May - Sep',
+      placeType: 'Pantai',
     ),
     DestinationModel(
       id: 9,
@@ -155,6 +163,21 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
       rating: 4.8,
       estimatedBudget: 2800000,
       bestTime: 'Apr - Oct',
+      placeType: 'Pantai',
+    ),
+    DestinationModel(
+      id: 10,
+      name: 'Desa Penglipuran',
+      location: 'Bali · Pedesaan',
+      description:
+          'Desa adat terbersih dengan arsitektur tradisional Bali yang asri dan tenang.',
+      image:
+          'https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=800&auto=format&fit=crop',
+      category: 'Pedesaan',
+      rating: 4.7,
+      estimatedBudget: 1500000,
+      bestTime: 'Apr - Oct',
+      placeType: 'Pedesaan',
     ),
   ];
 
@@ -289,14 +312,13 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
         .where((d) => _favoriteIds.contains(d.id))
         .toList();
 
-    if (_selectedCategory == 'All') {
+    if (_selectedCategory == 'Semua' || _selectedCategory == 'All') {
       return activeFavorites;
     }
-    return activeFavorites
-        .where(
-          (d) => d.category.toLowerCase() == _selectedCategory.toLowerCase(),
-        )
-        .toList();
+    return activeFavorites.where((d) {
+      final type = d.placeType ?? d.category;
+      return type.toLowerCase() == _selectedCategory.toLowerCase();
+    }).toList();
   }
 
   @override

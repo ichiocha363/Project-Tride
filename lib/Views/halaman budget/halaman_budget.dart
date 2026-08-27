@@ -566,9 +566,10 @@ class _HalamanBudgetState extends State<HalamanBudget> {
         : 0.0;
 
     return Scaffold(
+      extendBody: true,
       backgroundColor: bgWarm,
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 70),
+        padding: const EdgeInsets.only(bottom: 95),
         child: FloatingActionButton.extended(
           onPressed: _showAddExpenseDialog,
           backgroundColor: textNavy,
@@ -1240,7 +1241,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                             );
                           },
                         ),
-                      const SizedBox(height: 110),
+                      const SizedBox(height: 130),
                     ],
                   ),
                 ),

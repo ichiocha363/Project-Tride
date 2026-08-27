@@ -57,6 +57,7 @@ class _HalamanUtamaState extends State<HalamanUtama> {
     ];
 
     return Scaffold(
+      extendBody: true,
       body: PageView(
         controller: _pageController,
         physics: const NeverScrollableScrollPhysics(),

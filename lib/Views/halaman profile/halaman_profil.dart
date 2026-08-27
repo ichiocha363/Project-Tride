@@ -188,6 +188,7 @@ class _HalamanProfilState extends State<HalamanProfil>
         'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop';
 
     return Scaffold(
+      extendBody: true,
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
@@ -693,7 +694,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                   ),
                 ),
 
-                const SizedBox(height: 100), // Spacing for floating nav
+                const SizedBox(height: 120), // Spacing for floating nav
               ],
             ),
           ),

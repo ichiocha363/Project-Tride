@@ -43,11 +43,14 @@ class _CustomFloatingNavBarState extends State<CustomFloatingNavBar> {
     return AnimatedNotchBottomBar(
       notchBottomBarController: _controller,
       color: Colors.white,
+      showBlurBottomBar: false,
       showLabel: true,
       notchColor: activeColor,
       removeMargins: false,
       bottomBarWidth: 500,
       showShadow: true,
+      elevation: 3.0,
+      shadowElevation: 8.0,
       itemLabelStyle: const TextStyle(
         fontSize: 10,
         fontWeight: FontWeight.w600,

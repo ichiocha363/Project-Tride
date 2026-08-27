@@ -29,7 +29,8 @@ class DatabaseTables {
       estimated_budget INTEGER DEFAULT 0,
       best_time TEXT NULL,
       latitude REAL NULL,
-      longitude REAL NULL
+      longitude REAL NULL,
+      place_type TEXT NULL
     )
   ''';
 
@@ -91,4 +92,19 @@ class DatabaseTables {
       UNIQUE (user_id, destination_id)
     )
   ''';
+}
+
+class DestinationColumns {
+  static const String id = 'id';
+  static const String name = 'name';
+  static const String location = 'location';
+  static const String description = 'description';
+  static const String image = 'image';
+  static const String category = 'category';
+  static const String rating = 'rating';
+  static const String estimatedBudget = 'estimated_budget';
+  static const String bestTime = 'best_time';
+  static const String latitude = 'latitude';
+  static const String longitude = 'longitude';
+  static const String placeType = 'place_type';
 }

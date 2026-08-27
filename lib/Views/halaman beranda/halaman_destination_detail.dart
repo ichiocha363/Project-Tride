@@ -4,6 +4,7 @@ import 'package:project_tride/Database/db_helper.dart';
 import 'package:project_tride/Database/destination_model.dart';
 import 'package:project_tride/Database/favorite_model.dart';
 import 'package:project_tride/Models/user_model.dart';
+import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman budget/halaman_budget.dart';
 import '../halaman explore/halaman_jelajah.dart';
@@ -23,6 +24,8 @@ class HalamanDestinationDetail extends StatefulWidget {
   final List<Map<String, dynamic>>? highlights;
   final List<Map<String, dynamic>>? accommodations;
   final Map<String, dynamic>? culinary;
+  final int initialTab;
+  final bool isEmbeddedInShell;
 
   const HalamanDestinationDetail({
     super.key,
@@ -39,6 +42,8 @@ class HalamanDestinationDetail extends StatefulWidget {
     this.highlights,
     this.accommodations,
     this.culinary,
+    this.initialTab = 1,
+    this.isEmbeddedInShell = false,
   });
 
   @override
@@ -48,11 +53,12 @@ class HalamanDestinationDetail extends StatefulWidget {
 
 class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
   bool _isFavorited = false;
-  final int _currentNavIndex = 1;
+  late int _currentNavIndex;
 
   @override
   void initState() {
     super.initState();
+    _currentNavIndex = widget.initialTab;
     _checkFavoriteStatus();
   }
 
@@ -265,57 +271,13 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
         ],
       ),
 
-      // Bottom Navigation Bar
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+      // Integrated Floating Bottom Navigation Bar
+      bottomNavigationBar: widget.isEmbeddedInShell
+          ? null
+          : CustomFloatingNavBar(
+              selectedIndex: _currentNavIndex,
+              onDestinationSelected: _onNavTapped,
             ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentNavIndex,
-          onTap: _onNavTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: primaryBlue,
-          unselectedItemColor: textSlate,
-          selectedFontSize: 11,
-          unselectedFontSize: 11,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home_rounded),
-              label: 'Beranda',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.explore_outlined),
-              activeIcon: Icon(Icons.explore_rounded),
-              label: 'Jelajah',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.flight_takeoff_outlined),
-              activeIcon: Icon(Icons.flight_takeoff_rounded),
-              label: 'Perjalanan',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.account_balance_wallet_outlined),
-              activeIcon: Icon(Icons.account_balance_wallet_rounded),
-              label: 'Anggaran',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person_rounded),
-              label: 'Profil',
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -374,146 +336,149 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                  // Back Button
-                  GestureDetector(
-                    onTap: () {
-                      if (Navigator.canPop(context)) {
-                        Navigator.pop(context);
-                      } else {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                HalamanBeranda(user: widget.user),
+                    // Back Button
+                    GestureDetector(
+                      onTap: () {
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        } else {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  HalamanBeranda(user: widget.user),
+                            ),
+                          );
+                        }
+                      },
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.35),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.25),
+                            width: 1,
                           ),
-                        );
-                      }
-                    },
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.35),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          width: 1,
                         ),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: Colors.white,
-                        size: 18,
+                        child: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                       ),
                     ),
-                  ),
 
-                  Row(
-                    children: [
-                      // Love Favorite Button
-                      GestureDetector(
-                        onTap: () async {
-                          final userId = widget.user?.id ?? 1;
-                          final destId = _getDestinationId();
-                          final titleParts = widget.destinationTitle.split(',');
-                          final name = titleParts.isNotEmpty
-                              ? titleParts[0].trim()
-                              : widget.destinationTitle;
-                          final location = titleParts.length > 1
-                              ? titleParts.sublist(1).join(',').trim()
-                              : widget.destinationTitle;
+                    Row(
+                      children: [
+                        // Love Favorite Button
+                        GestureDetector(
+                          onTap: () async {
+                            final userId = widget.user?.id ?? 1;
+                            final destId = _getDestinationId();
+                            final titleParts = widget.destinationTitle.split(
+                              ',',
+                            );
+                            final name = titleParts.isNotEmpty
+                                ? titleParts[0].trim()
+                                : widget.destinationTitle;
+                            final location = titleParts.length > 1
+                                ? titleParts.sublist(1).join(',').trim()
+                                : widget.destinationTitle;
 
-                          try {
-                            if (_isFavorited) {
-                              await DbHelper.instance.removeFavorite(
-                                userId,
-                                destId,
-                              );
-                              if (mounted) {
-                                setState(() {
-                                  _isFavorited = false;
-                                });
-                                ScaffoldMessenger.of(
-                                  context,
-                                ).removeCurrentSnackBar();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      '$name dihapus dari Saved Places',
+                            try {
+                              if (_isFavorited) {
+                                await DbHelper.instance.removeFavorite(
+                                  userId,
+                                  destId,
+                                );
+                                if (mounted) {
+                                  setState(() {
+                                    _isFavorited = false;
+                                  });
+                                  ScaffoldMessenger.of(
+                                    context,
+                                  ).removeCurrentSnackBar();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '$name dihapus dari Saved Places',
+                                      ),
+                                      duration: const Duration(seconds: 1),
+                                      behavior: SnackBarBehavior.floating,
                                     ),
-                                    duration: const Duration(seconds: 1),
-                                    behavior: SnackBarBehavior.floating,
+                                  );
+                                }
+                              } else {
+                                await DbHelper.instance.ensureDestinationExists(
+                                  DestinationModel(
+                                    id: destId,
+                                    name: name,
+                                    location: location,
+                                    description: widget.description,
+                                    image: widget.imageUrl,
+                                    category: widget.categoryTag,
+                                    rating:
+                                        double.tryParse(widget.rating) ?? 4.8,
                                   ),
                                 );
-                              }
-                            } else {
-                              await DbHelper.instance.ensureDestinationExists(
-                                DestinationModel(
-                                  id: destId,
-                                  name: name,
-                                  location: location,
-                                  description: widget.description,
-                                  image: widget.imageUrl,
-                                  category: widget.categoryTag,
-                                  rating: double.tryParse(widget.rating) ?? 4.8,
-                                ),
-                              );
 
-                              await DbHelper.instance.addFavorite(
-                                FavoriteModel(
-                                  userId: userId,
-                                  destinationId: destId,
-                                  createdAt: DateTime.now().toIso8601String(),
-                                ),
-                              );
-
-                              if (mounted) {
-                                setState(() {
-                                  _isFavorited = true;
-                                });
-                              }
-
-                              if (mounted) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        HalamanSavedPlaces(user: widget.user),
+                                await DbHelper.instance.addFavorite(
+                                  FavoriteModel(
+                                    userId: userId,
+                                    destinationId: destId,
+                                    createdAt: DateTime.now().toIso8601String(),
                                   ),
-                                ).then((_) => _checkFavoriteStatus());
+                                );
+
+                                if (mounted) {
+                                  setState(() {
+                                    _isFavorited = true;
+                                  });
+                                }
+
+                                if (mounted) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          HalamanSavedPlaces(user: widget.user),
+                                    ),
+                                  ).then((_) => _checkFavoriteStatus());
+                                }
                               }
-                            }
-                          } catch (_) {}
-                        },
-                        child: Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.35),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.25),
-                              width: 1,
+                            } catch (_) {}
+                          },
+                          child: Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.35),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.25),
+                                width: 1,
+                              ),
+                            ),
+                            child: Icon(
+                              _isFavorited
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              color: _isFavorited
+                                  ? Colors.redAccent
+                                  : Colors.white,
+                              size: 22,
                             ),
                           ),
-                          child: Icon(
-                            _isFavorited
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            color: _isFavorited
-                                ? Colors.redAccent
-                                : Colors.white,
-                            size: 22,
-                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
 
           // Bottom Hero Text & Tag
           Positioned(

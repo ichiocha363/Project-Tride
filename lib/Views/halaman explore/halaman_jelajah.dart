@@ -25,15 +25,18 @@ class HalamanJelajah extends StatefulWidget {
 
 class _HalamanJelajahState extends State<HalamanJelajah> {
   final TextEditingController _searchController = TextEditingController();
-  int _selectedCategoryIndex = 0;
+  String _selectedCategory = 'Semua';
   final Set<int> _favorites = {};
+  List<DestinationModel> _destinations = [];
+  bool _isLoadingDestinations = true;
 
   final List<String> _categories = [
     'Semua',
-    'Alam',
+    'Pantai',
+    'Pegunungan',
     'Perkotaan',
-    'Santai',
-    'Petualangan',
+    'Pedesaan',
+    'Alam',
   ];
 
   final List<Map<String, dynamic>> _curatedCollections = [
@@ -55,53 +58,11 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
     },
   ];
 
-  final List<Map<String, dynamic>> _trendingDestinations = [
-    {
-      'id': 7,
-      'title': 'Tokyo, Japan',
-      'price': 'mulai Rp 13,5jt',
-      'rating': '4.9',
-      'reviews': '(1.2k)',
-      'category': 'Perkotaan',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=600&auto=format&fit=crop',
-    },
-    {
-      'id': 8,
-      'title': 'Santorini, Greece',
-      'price': 'mulai Rp 19jt',
-      'rating': '4.9',
-      'reviews': '(2.4k)',
-      'category': 'Santai',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?q=80&w=600&auto=format&fit=crop',
-    },
-    {
-      'id': 9,
-      'title': 'Labuan Bajo, ID',
-      'price': 'mulai Rp 6,8jt',
-      'rating': '4.8',
-      'reviews': '(1.8k)',
-      'category': 'Alam',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1516690561799-46d8f74f9abf?q=80&w=600&auto=format&fit=crop',
-    },
-    {
-      'id': 3,
-      'title': 'Kyoto Pagoda',
-      'price': 'mulai Rp 12jt',
-      'rating': '4.8',
-      'reviews': '(3.1k)',
-      'category': 'Urban',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=600&auto=format&fit=crop',
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
     _loadFavorites();
+    _loadDestinations();
   }
 
   Future<void> _loadFavorites() async {
@@ -115,6 +76,176 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
         });
       }
     } catch (_) {}
+  }
+
+  Future<void> _loadDestinations() async {
+    setState(() => _isLoadingDestinations = true);
+    try {
+      final seedList = [
+        DestinationModel(
+          id: 1,
+          name: 'Rome',
+          location: 'Italy · Culture',
+          description:
+              'Historical city rich in architecture, ancient ruins, and world-class culinary experiences.',
+          image:
+              'https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=1200&auto=format&fit=crop',
+          category: 'Culture',
+          rating: 4.8,
+          estimatedBudget: 2500000,
+          bestTime: 'May - Oct',
+          placeType: 'Perkotaan',
+        ),
+        DestinationModel(
+          id: 2,
+          name: 'Maldives',
+          location: 'South Asia · Island',
+          description:
+              'Crystal clear waters, overwater bungalows, and pristine white sand beaches.',
+          image:
+              'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?q=80&w=800&auto=format&fit=crop',
+          category: 'Relax',
+          rating: 4.9,
+          estimatedBudget: 4500000,
+          bestTime: 'Nov - Apr',
+          placeType: 'Pantai',
+        ),
+        DestinationModel(
+          id: 3,
+          name: 'Kyoto',
+          location: 'Japan · Culture',
+          description:
+              'Traditional wooden houses, serene Zen gardens, and historic Shinto shrines.',
+          image:
+              'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=800&auto=format&fit=crop',
+          category: 'Culture',
+          rating: 4.8,
+          estimatedBudget: 3200000,
+          bestTime: 'Mar - May',
+          placeType: 'Perkotaan',
+        ),
+        DestinationModel(
+          id: 4,
+          name: 'Icelandia',
+          location: 'North Europe · Nature',
+          description:
+              'Dramatic volcanic landscapes, majestic waterfalls, and mesmerizing Northern Lights.',
+          image:
+              'https://images.unsplash.com/photo-1504893524553-b855bce32c67?q=80&w=800&auto=format&fit=crop',
+          category: 'Nature',
+          rating: 4.9,
+          estimatedBudget: 5000000,
+          bestTime: 'Sep - Mar',
+          placeType: 'Alam',
+        ),
+        DestinationModel(
+          id: 5,
+          name: 'Marrakech',
+          location: 'Morocco · Culture',
+          description:
+              'Vibrant souks, stunning riads, and rich African-Arabian culture.',
+          image:
+              'https://images.unsplash.com/photo-1597212618440-806262de4f6b?q=80&w=800&auto=format&fit=crop',
+          category: 'Culture',
+          rating: 4.7,
+          estimatedBudget: 2200000,
+          bestTime: 'Oct - Apr',
+          placeType: 'Perkotaan',
+        ),
+        DestinationModel(
+          id: 6,
+          name: 'Zermatt',
+          location: 'Switzerland · Nature',
+          description:
+              'Famous mountain resort at the foot of the iconic Matterhorn peak.',
+          image:
+              'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?q=80&w=800&auto=format&fit=crop',
+          category: 'Nature',
+          rating: 4.8,
+          estimatedBudget: 4800000,
+          bestTime: 'Dec - Mar',
+          placeType: 'Pegunungan',
+        ),
+        DestinationModel(
+          id: 7,
+          name: 'Tokyo',
+          location: 'Japan · Urban',
+          description:
+              'Futuristic metropolis blending ultramodern skyscrapers with historic temples.',
+          image:
+              'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=600&auto=format&fit=crop',
+          category: 'Urban',
+          rating: 4.9,
+          estimatedBudget: 3800000,
+          bestTime: 'Mar - May',
+          placeType: 'Perkotaan',
+        ),
+        DestinationModel(
+          id: 8,
+          name: 'Santorini',
+          location: 'Greece · Relax',
+          description:
+              'White-washed cliffside villas overlooking dramatic Aegean Sea views.',
+          image:
+              'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?q=80&w=600&auto=format&fit=crop',
+          category: 'Relax',
+          rating: 4.9,
+          estimatedBudget: 4200000,
+          bestTime: 'May - Sep',
+          placeType: 'Pantai',
+        ),
+        DestinationModel(
+          id: 9,
+          name: 'Labuan Bajo',
+          location: 'Indonesia · Nature',
+          description:
+              'Gateway to Komodo National Park with pristine beaches and island adventures.',
+          image:
+              'https://images.unsplash.com/photo-1516690561799-46d8f74f9abf?q=80&w=600&auto=format&fit=crop',
+          category: 'Nature',
+          rating: 4.8,
+          estimatedBudget: 2800000,
+          bestTime: 'Apr - Oct',
+          placeType: 'Pantai',
+        ),
+        DestinationModel(
+          id: 10,
+          name: 'Desa Penglipuran',
+          location: 'Bali · Pedesaan',
+          description:
+              'Desa adat terbersih dengan arsitektur tradisional Bali yang asri dan tenang.',
+          image:
+              'https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=800&auto=format&fit=crop',
+          category: 'Pedesaan',
+          rating: 4.7,
+          estimatedBudget: 1500000,
+          bestTime: 'Apr - Oct',
+          placeType: 'Pedesaan',
+        ),
+      ];
+
+      for (var dest in seedList) {
+        await DbHelper.instance.ensureDestinationExists(dest);
+      }
+
+      List<DestinationModel> results;
+      if (_selectedCategory == 'Semua') {
+        results = await DestinationModel.getAll();
+      } else {
+        results = await DestinationModel.getByPlaceType(_selectedCategory);
+      }
+
+      if (mounted) {
+        setState(() {
+          _destinations = results;
+          _isLoadingDestinations = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoadingDestinations = false);
+      }
+    }
   }
 
   @override
@@ -172,18 +303,17 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
 
     // Filter logic
     final query = _searchController.text.toLowerCase().trim();
-    final selectedCategory = _categories[_selectedCategoryIndex];
 
-    final filteredList = _trendingDestinations.where((item) {
-      final matchesQuery = item['title'].toLowerCase().contains(query);
-      final matchesCategory =
-          selectedCategory == 'Semua' ||
-          selectedCategory == 'All' ||
-          item['category'] == selectedCategory;
-      return matchesQuery && matchesCategory;
+    final filteredList = _destinations.where((item) {
+      final matchesQuery =
+          query.isEmpty ||
+          item.name.toLowerCase().contains(query) ||
+          item.location.toLowerCase().contains(query);
+      return matchesQuery;
     }).toList();
 
     return Scaffold(
+      extendBody: true,
       backgroundColor: bgCloud,
       body: CustomScrollView(
         slivers: [
@@ -350,166 +480,167 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                 // Category Chips
                 CategoryFilterBar(
                   categories: _categories,
-                  selectedCategory: _categories[_selectedCategoryIndex],
+                  selectedCategory: _selectedCategory,
                   onCategorySelected: (cat) {
                     setState(() {
-                      _selectedCategoryIndex = _categories.indexOf(cat);
+                      _selectedCategory = cat;
                     });
+                    _loadDestinations();
                   },
                 ),
-                const SizedBox(height: 24),
+                // const SizedBox(height: 20),
 
                 // Curated Collections Section
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Koleksi\nPilihan",
-                        style: TextStyle(
-                          fontFamily: 'Plus Jakarta Sans',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 24,
-                          color: textNavy,
-                          height: 1.2,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          "LIHAT SEMUA",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: primaryBlue,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
+                // Padding(
+                //   padding: const EdgeInsets.symmetric(horizontal: 20),
+                //   child: Row(
+                //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //     children: [
+                //       const Text(
+                //         "Koleksi\nPilihan",
+                //         style: TextStyle(
+                //           fontFamily: 'Plus Jakarta Sans',
+                //           fontWeight: FontWeight.bold,
+                //           fontSize: 24,
+                //           color: textNavy,
+                //           height: 1.2,
+                //         ),
+                //       ),
+                //       TextButton(
+                //         onPressed: () {},
+                //         child: const Text(
+                //           "LIHAT SEMUA",
+                //           style: TextStyle(
+                //             fontSize: 12,
+                //             fontWeight: FontWeight.bold,
+                //             color: primaryBlue,
+                //             letterSpacing: 0.8,
+                //           ),
+                //         ),
+                //       ),
+                //     ],
+                //   ),
+                // ),
+                // const SizedBox(height: 14),
 
-                SizedBox(
-                  height: 320,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _curatedCollections.length,
-                    itemBuilder: (context, index) {
-                      final item = _curatedCollections[index];
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => HalamanDestinationDetail(
-                                user: widget.user,
-                                destinationTitle: item['title'].replaceAll(
-                                  '\n',
-                                  ' ',
-                                ),
-                                categoryTag: item['tag'],
-                                imageUrl: item['imageUrl'],
-                                description:
-                                    'Jelajahi keindahan dan pengalaman eksklusif di ${item['title'].replaceAll('\n', ' ')}. Tempat liburan impian terbaik untuk merilekskan pikiran.',
-                              ),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          width: 280,
-                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(28),
-                            image: DecorationImage(
-                              image: NetworkImage(item['imageUrl']),
-                              fit: BoxFit.cover,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.12),
-                                blurRadius: 16,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.all(22),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(28),
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.8),
-                                ],
-                              ),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.25),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    item['tag'],
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  item['title'],
-                                  style: const TextStyle(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    fontFamily: 'Plus Jakarta Sans',
-                                    height: 1.1,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.location_on_rounded,
-                                      color: Colors.white70,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      item['destinations'],
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.white70,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 32),
+                // SizedBox(
+                //   height: 320,
+                //   child: ListView.builder(
+                //     padding: const EdgeInsets.symmetric(horizontal: 16),
+                //     scrollDirection: Axis.horizontal,
+                //     itemCount: _curatedCollections.length,
+                //     itemBuilder: (context, index) {
+                //       final item = _curatedCollections[index];
+                //       return GestureDetector(
+                //         onTap: () {
+                //           Navigator.push(
+                //             context,
+                //             MaterialPageRoute(
+                //               builder: (context) => HalamanDestinationDetail(
+                //                 user: widget.user,
+                //                 destinationTitle: item['title'].replaceAll(
+                //                   '\n',
+                //                   ' ',
+                //                 ),
+                //                 categoryTag: item['tag'],
+                //                 imageUrl: item['imageUrl'],
+                //                 description:
+                //                     'Jelajahi keindahan dan pengalaman eksklusif di ${item['title'].replaceAll('\n', ' ')}. Tempat liburan impian terbaik untuk merilekskan pikiran.',
+                //               ),
+                //             ),
+                //           );
+                //         },
+                //         child: Container(
+                //           width: 280,
+                //           margin: const EdgeInsets.symmetric(horizontal: 8),
+                //           decoration: BoxDecoration(
+                //             borderRadius: BorderRadius.circular(28),
+                //             image: DecorationImage(
+                //               image: NetworkImage(item['imageUrl']),
+                //               fit: BoxFit.cover,
+                //             ),
+                //             boxShadow: [
+                //               BoxShadow(
+                //                 color: Colors.black.withValues(alpha: 0.12),
+                //                 blurRadius: 16,
+                //                 offset: const Offset(0, 6),
+                //               ),
+                //             ],
+                //           ),
+                //           child: Container(
+                //             padding: const EdgeInsets.all(22),
+                //             decoration: BoxDecoration(
+                //               borderRadius: BorderRadius.circular(28),
+                //               gradient: LinearGradient(
+                //                 begin: Alignment.topCenter,
+                //                 end: Alignment.bottomCenter,
+                //                 colors: [
+                //                   Colors.transparent,
+                //                   Colors.black.withValues(alpha: 0.8),
+                //                 ],
+                //               ),
+                //             ),
+                //             child: Column(
+                //               mainAxisAlignment: MainAxisAlignment.end,
+                //               crossAxisAlignment: CrossAxisAlignment.start,
+                //               children: [
+                //                 Container(
+                //                   padding: const EdgeInsets.symmetric(
+                //                     horizontal: 12,
+                //                     vertical: 6,
+                //                   ),
+                //                   decoration: BoxDecoration(
+                //                     color: Colors.white.withValues(alpha: 0.25),
+                //                     borderRadius: BorderRadius.circular(20),
+                //                   ),
+                //                   child: Text(
+                //                     item['tag'],
+                //                     style: const TextStyle(
+                //                       fontSize: 10,
+                //                       fontWeight: FontWeight.bold,
+                //                       color: Colors.white,
+                //                       letterSpacing: 1.0,
+                //                     ),
+                //                   ),
+                //                 ),
+                //                 const SizedBox(height: 10),
+                //                 Text(
+                //                   item['title'],
+                //                   style: const TextStyle(
+                //                     fontSize: 26,
+                //                     fontWeight: FontWeight.bold,
+                //                     color: Colors.white,
+                //                     fontFamily: 'Plus Jakarta Sans',
+                //                     height: 1.1,
+                //                   ),
+                //                 ),
+                //                 const SizedBox(height: 8),
+                //                 Row(
+                //                   children: [
+                //                     const Icon(
+                //                       Icons.location_on_rounded,
+                //                       color: Colors.white70,
+                //                       size: 16,
+                //                     ),
+                //                     const SizedBox(width: 4),
+                //                     Text(
+                //                       item['destinations'],
+                //                       style: const TextStyle(
+                //                         fontSize: 13,
+                //                         color: Colors.white70,
+                //                       ),
+                //                     ),
+                //                   ],
+                //                 ),
+                //               ],
+                //             ),
+                //           ),
+                //         ),
+                //       );
+                //     },
+                //   ),
+                // ),
+                // const SizedBox(height: 32),
 
                 // Trending Now Section
                 Container(
@@ -537,7 +668,16 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                       ),
                       const SizedBox(height: 16),
 
-                      if (filteredList.isEmpty)
+                      if (_isLoadingDestinations)
+                        const Padding(
+                          padding: EdgeInsets.all(32),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: primaryBlue,
+                            ),
+                          ),
+                        )
+                      else if (filteredList.isEmpty)
                         const Padding(
                           padding: EdgeInsets.all(32),
                           child: Center(
@@ -562,7 +702,12 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                           itemCount: filteredList.length,
                           itemBuilder: (context, index) {
                             final item = filteredList[index];
-                            final isFav = _favorites.contains(item['id']);
+                            final itemId = item.id;
+                            final isFav =
+                                itemId != null && _favorites.contains(itemId);
+                            final priceText = item.estimatedBudget > 0
+                                ? 'mulai Rp ${(item.estimatedBudget / 1000000).toStringAsFixed(1).replaceAll('.0', '')}jt'
+                                : 'mulai Rp 1.5jt';
 
                             return GestureDetector(
                               onTap: () {
@@ -571,17 +716,16 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                                   MaterialPageRoute(
                                     builder: (context) => HalamanDestinationDetail(
                                       user: widget.user,
-                                      destinationTitle: item['title'],
+                                      destinationTitle: item.name,
                                       categoryTag:
-                                          (item['category'] as String?)
-                                              ?.toUpperCase() ??
-                                          'DESTINASI POPULER',
-                                      imageUrl: item['imageUrl'],
-                                      rating:
-                                          item['rating']?.toString() ?? '4.8',
-                                      pricePerDay: item['price'] ?? 'Rp 1.5M',
-                                      description:
-                                          'Tinggalkan rutinitas dan nikmati keindahan ${item['title']}. Temukan berbagai atraksi budaya, alam, serta kuliner khas yang memukau.',
+                                          (item.placeType ?? item.category)
+                                              .toUpperCase(),
+                                      imageUrl: item.image,
+                                      rating: item.rating.toString(),
+                                      pricePerDay: priceText,
+                                      description: item.description.isNotEmpty
+                                          ? item.description
+                                          : 'Tinggalkan rutinitas dan nikmati keindahan ${item.name}. Temukan berbagai atraksi budaya, alam, serta kuliner khas yang memukau.',
                                     ),
                                   ),
                                 );
@@ -612,10 +756,21 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                                                 top: Radius.circular(20),
                                               ),
                                           child: Image.network(
-                                            item['imageUrl'],
+                                            item.image,
                                             height: 140,
                                             width: double.infinity,
                                             fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) =>
+                                                    Container(
+                                                      height: 140,
+                                                      color:
+                                                          Colors.grey.shade300,
+                                                      child: const Icon(
+                                                        Icons.image,
+                                                        size: 40,
+                                                      ),
+                                                    ),
                                           ),
                                         ),
 
@@ -625,9 +780,9 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                                           right: 8,
                                           child: GestureDetector(
                                             onTap: () async {
+                                              if (itemId == null) return;
                                               final userId =
                                                   widget.user?.id ?? 1;
-                                              final itemId = item['id'] as int;
                                               final isCurrentlyFav = _favorites
                                                   .contains(itemId);
 
@@ -650,7 +805,7 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                                                     ).showSnackBar(
                                                       SnackBar(
                                                         content: Text(
-                                                          '${item['title']} dihapus dari Saved Places',
+                                                          '${item.name} dihapus dari Saved Places',
                                                         ),
                                                         duration:
                                                             const Duration(
@@ -665,26 +820,7 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                                                 } else {
                                                   await DbHelper.instance
                                                       .ensureDestinationExists(
-                                                        DestinationModel(
-                                                          id: itemId,
-                                                          name: item['title'],
-                                                          location:
-                                                              item['category'] ??
-                                                              '',
-                                                          description:
-                                                              item['title'],
-                                                          image:
-                                                              item['imageUrl'],
-                                                          category:
-                                                              item['category'] ??
-                                                              'General',
-                                                          rating:
-                                                              double.tryParse(
-                                                                item['rating'] ??
-                                                                    '4.8',
-                                                              ) ??
-                                                              4.8,
-                                                        ),
+                                                        item,
                                                       );
 
                                                   await DbHelper.instance
@@ -757,7 +893,7 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                                                   BorderRadius.circular(8),
                                             ),
                                             child: Text(
-                                              item['price'],
+                                              priceText,
                                               style: const TextStyle(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
@@ -833,7 +969,7 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            item['title'],
+                                            item.name,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
@@ -853,7 +989,7 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                                               ),
                                               const SizedBox(width: 4),
                                               Text(
-                                                "${item['rating']} ${item['reviews']}",
+                                                "${item.rating} (4.8k)",
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   color: Colors.grey.shade600,
@@ -873,6 +1009,7 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 120),
               ],
             ),
           ),

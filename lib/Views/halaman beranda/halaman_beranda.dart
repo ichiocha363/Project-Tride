@@ -172,6 +172,7 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
     final userName = widget.user?.nama ?? 'Traveler';
 
     return Scaffold(
+      extendBody: true,
       backgroundColor: bgCloud,
       body: CustomScrollView(
         slivers: [
@@ -1074,7 +1075,7 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                           );
                         },
                       ),
-                      const SizedBox(height: 100),
+                      const SizedBox(height: 120),
                     ],
                   ),
                 ),

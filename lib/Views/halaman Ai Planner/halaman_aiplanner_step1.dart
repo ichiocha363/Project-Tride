@@ -201,6 +201,7 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
     const Color surfaceVariant = Color(0xFFE1E2ED);
 
     return Scaffold(
+      extendBody: true,
       backgroundColor: bgCloud,
       body: CustomScrollView(
         slivers: [
@@ -660,7 +661,7 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 120),
                 ],
               ),
             ),

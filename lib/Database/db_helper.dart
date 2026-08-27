@@ -27,7 +27,7 @@ class DbHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onConfigure: _onConfigure,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
@@ -48,8 +48,11 @@ class DbHelper {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Non-destructive upgrade pattern.
-    // Preserves existing tables and data.
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE ${DatabaseTables.tableDestinations} ADD COLUMN ${DestinationColumns.placeType} TEXT',
+      );
+    }
   }
 
   Future<void> closeDatabase() async {
@@ -166,6 +169,8 @@ class DbHelper {
     final existing = await getDestinationById(destination.id!);
     if (existing == null) {
       await insertDestination(destination);
+    } else if (existing.placeType == null && destination.placeType != null) {
+      await updateDestination(destination);
     }
   }
 

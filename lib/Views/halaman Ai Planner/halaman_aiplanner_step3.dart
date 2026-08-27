@@ -515,7 +515,7 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 120),
                 ],
               ),
             ),

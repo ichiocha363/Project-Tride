@@ -1,3 +1,6 @@
+import 'database_tables.dart';
+import 'db_helper.dart';
+
 class DestinationModel {
   final int? id;
   final String name;
@@ -10,6 +13,7 @@ class DestinationModel {
   final String? bestTime;
   final double? latitude;
   final double? longitude;
+  final String? placeType;
 
   DestinationModel({
     this.id,
@@ -23,6 +27,7 @@ class DestinationModel {
     this.bestTime,
     this.latitude,
     this.longitude,
+    this.placeType,
   });
 
   Map<String, dynamic> toMap() {
@@ -38,6 +43,7 @@ class DestinationModel {
       'best_time': bestTime,
       'latitude': latitude,
       'longitude': longitude,
+      DestinationColumns.placeType: placeType,
     };
   }
 
@@ -54,6 +60,7 @@ class DestinationModel {
       bestTime: map['best_time'] as String?,
       latitude: (map['latitude'] as num?)?.toDouble(),
       longitude: (map['longitude'] as num?)?.toDouble(),
+      placeType: map[DestinationColumns.placeType] as String? ?? map['place_type'] as String?,
     );
   }
 
@@ -69,6 +76,7 @@ class DestinationModel {
     String? bestTime,
     double? latitude,
     double? longitude,
+    String? placeType,
   }) {
     return DestinationModel(
       id: id ?? this.id,
@@ -82,6 +90,21 @@ class DestinationModel {
       bestTime: bestTime ?? this.bestTime,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      placeType: placeType ?? this.placeType,
     );
+  }
+
+  static Future<List<DestinationModel>> getAll() async {
+    return await DbHelper.instance.getDestinations();
+  }
+
+  static Future<List<DestinationModel>> getByPlaceType(String placeType) async {
+    final db = await DbHelper.instance.database;
+    final result = await db.query(
+      DatabaseTables.tableDestinations,
+      where: '${DestinationColumns.placeType} = ?',
+      whereArgs: [placeType],
+    );
+    return result.map((json) => DestinationModel.fromMap(json)).toList();
   }
 }
