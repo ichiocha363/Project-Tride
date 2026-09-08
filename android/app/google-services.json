@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "965863799723",
+    "project_id": "tride-project-92f17",
+    "storage_bucket": "tride-project-92f17.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:965863799723:android:440db442ef3f5565eb70ee",
+        "android_client_info": {
+          "package_name": "com.ZH.tride"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNIflUlxZQbcFQizx5yameHTYr5zdQawE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
