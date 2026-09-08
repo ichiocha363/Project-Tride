@@ -7,7 +7,6 @@ import '../../Widgets/custom_floating_nav_bar.dart';
 import '../../Widgets/preference_tile.dart';
 import '../../Widgets/profile_stat_item.dart';
 import '../../Widgets/milestone_card.dart';
-import 'package:project_tride/utils/session_manager.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman beranda/halaman_beranda.dart';
 import '../halaman budget/halaman_budget.dart';
@@ -18,6 +17,7 @@ import 'halaman_saved_places.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:project_tride/Database/db_helper.dart';
 import 'package:project_tride/Database/user_model.dart' as db_user;
+import 'package:project_tride/Services/auth_service.dart';
 
 class HalamanProfil extends StatefulWidget {
   final UserModel? user;
@@ -119,7 +119,7 @@ class _HalamanProfilState extends State<HalamanProfil>
             onPressed: () async {
               final nav = Navigator.of(context);
               nav.pop();
-              await SessionManager.clearSession();
+              await AuthService.instance.signOut();
               nav.pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const HalamanLogin()),
                 (route) => false,

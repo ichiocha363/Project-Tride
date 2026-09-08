@@ -1,9 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:project_tride/Database/database_helper.dart';
+import 'package:project_tride/Services/auth_service.dart';
 import 'package:project_tride/Views/halaman_utama.dart';
 import 'package:project_tride/Views/halaman_register.dart';
-import 'package:project_tride/utils/session_manager.dart';
 
 class HalamanLogin extends StatefulWidget {
   const HalamanLogin({super.key});
@@ -32,9 +31,9 @@ class _HalamanLoginState extends State<HalamanLogin> {
         isLoading = true;
       });
 
-      final user = await DatabaseHelper.instance.loginUser(
-        emailC.text.trim(),
-        passwordC.text,
+      final result = await AuthService.instance.loginWithEmailPassword(
+        email: emailC.text.trim(),
+        password: passwordC.text,
       );
 
       if (!mounted) return;
@@ -43,12 +42,7 @@ class _HalamanLoginState extends State<HalamanLogin> {
         isLoading = false;
       });
 
-      if (user != null) {
-        if (user.id != null) {
-          await SessionManager.saveSession(user.id!);
-        }
-        if (!mounted) return;
-
+      if (result.isSuccess && result.userModel != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -56,7 +50,9 @@ class _HalamanLoginState extends State<HalamanLogin> {
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text("Selamat datang kembali, ${user.nama}!"),
+                  child: Text(
+                    "Selamat datang kembali, ${result.userModel!.nama}!",
+                  ),
                 ),
               ],
             ),
@@ -70,17 +66,22 @@ class _HalamanLoginState extends State<HalamanLogin> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HalamanUtama(user: user),
+            builder: (context) => HalamanUtama(user: result.userModel!),
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 10),
-                Expanded(child: Text("Email atau password tidak ditemukan!")),
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    result.errorMessage ??
+                        "Email atau password salah. Silakan coba lagi.",
+                  ),
+                ),
               ],
             ),
             backgroundColor: const Color(0xFFBA1A1A),
@@ -92,6 +93,203 @@ class _HalamanLoginState extends State<HalamanLogin> {
         );
       }
     }
+  }
+
+  void _showForgotPasswordDialog() {
+    final resetEmailC = TextEditingController(text: emailC.text.trim());
+    final dialogFormKey = GlobalKey<FormState>();
+    bool isSending = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.15),
+            ),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.lock_reset_rounded, color: Color(0xFFC4E7FF)),
+              SizedBox(width: 10),
+              Text(
+                "Reset Password",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          content: Form(
+            key: dialogFormKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Masukkan alamat email akun Anda untuk menerima link reset password dari Firebase.",
+                  style: TextStyle(
+                    color: Color(0xFFB4C5FF),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: resetEmailC,
+                  keyboardType: TextInputType.emailAddress,
+                  style: const TextStyle(color: Colors.white),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return "Email tidak boleh kosong";
+                    }
+                    if (!val.contains('@')) {
+                      return "Email tidak valid";
+                    }
+                    return null;
+                  },
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(
+                      Icons.mail_outline_rounded,
+                      color: Color(0xFFB4C5FF),
+                    ),
+                    hintText: "explorer@tride.com",
+                    hintStyle: TextStyle(
+                      color: const Color(0xFFB4C5FF).withValues(alpha: 0.6),
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFF0F172A),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Colors.white,
+                        width: 1.5,
+                      ),
+                    ),
+                    errorStyle: const TextStyle(color: Color(0xFFFFB4AB)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                "Batal",
+                style: TextStyle(color: Color(0xFFB4C5FF)),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: isSending
+                  ? null
+                  : () async {
+                      if (dialogFormKey.currentState!.validate()) {
+                        setDialogState(() {
+                          isSending = true;
+                        });
+
+                        final messenger = ScaffoldMessenger.of(context);
+                        final navigator = Navigator.of(dialogContext);
+
+                        final res = await AuthService.instance
+                            .sendPasswordResetEmail(
+                          email: resetEmailC.text.trim(),
+                        );
+
+                        if (!mounted) return;
+                        navigator.pop();
+
+                        if (res.isSuccess) {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: const Row(
+                                children: [
+                                  Icon(Icons.check_circle,
+                                      color: Colors.white),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      "Link reset password telah dikirim ke email Anda. Silakan periksa inbox/spam.",
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: const Color(0xFF3E9C5D),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          );
+                        } else {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.error_outline,
+                                      color: Colors.white),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      res.errorMessage ??
+                                          "Gagal mengirim link reset password.",
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: const Color(0xFFBA1A1A),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF004AC6),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: isSending
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text("Kirim Link"),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -293,15 +491,7 @@ class _HalamanLoginState extends State<HalamanLogin> {
                                       ),
                                     ),
                                     TextButton(
-                                      onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              "Silakan hubungi dukungan Tride untuk me-reset password.",
-                                            ),
-                                          ),
-                                        );
-                                      },
+                                      onPressed: _showForgotPasswordDialog,
                                       style: TextButton.styleFrom(
                                         padding: EdgeInsets.zero,
                                         minimumSize: Size.zero,

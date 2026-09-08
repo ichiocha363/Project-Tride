@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:project_tride/Database/database_helper.dart';
-import 'package:project_tride/Models/user_model.dart';
+import 'package:project_tride/Services/auth_service.dart';
 import 'package:project_tride/Views/halaman_login.dart';
 
 class HalamanRegister extends StatefulWidget {
@@ -62,13 +61,11 @@ class _HalamanRegisterState extends State<HalamanRegister> {
         isLoading = true;
       });
 
-      final newUser = UserModel(
-        nama: namaC.text.trim(),
+      final result = await AuthService.instance.registerWithEmailPassword(
+        name: namaC.text.trim(),
         email: emailC.text.trim(),
         password: passwordC.text,
       );
-
-      final result = await DatabaseHelper.instance.registerUser(newUser);
 
       if (!mounted) return;
 
@@ -76,26 +73,7 @@ class _HalamanRegisterState extends State<HalamanRegister> {
         isLoading = false;
       });
 
-      if (result == -1) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text("Email sudah terdaftar! Gunakan email lain."),
-                ),
-              ],
-            ),
-            backgroundColor: const Color(0xFFBA1A1A),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      } else if (result > 0) {
+      if (result.isSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Row(
@@ -121,11 +99,16 @@ class _HalamanRegisterState extends State<HalamanRegister> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 10),
-                Expanded(child: Text("Registrasi gagal. Silakan coba lagi.")),
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    result.errorMessage ??
+                        "Registrasi gagal. Silakan coba lagi.",
+                  ),
+                ),
               ],
             ),
             backgroundColor: const Color(0xFFBA1A1A),
