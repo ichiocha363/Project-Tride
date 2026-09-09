@@ -34,40 +34,46 @@ class _HalamanDestinationSearchState extends State<HalamanDestinationSearch> {
 
   final List<Map<String, String>> _trendingDestinations = [
     {
-      'title': 'Bangkok',
-      'subtitle': 'Thailand',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1508009603885-50cf7c579365?q=80&w=800&auto=format&fit=crop',
-    },
-    {
-      'title': 'Seoul',
-      'subtitle': 'South Korea',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1538485399081-7191377e8241?q=80&w=800&auto=format&fit=crop',
-    },
-    {
-      'title': 'Bandung',
-      'subtitle': 'Indonesia',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1588668214407-6ea9a6d8c272?q=80&w=800&auto=format&fit=crop',
-    },
-    {
-      'title': 'Singapura',
-      'subtitle': 'Singapore',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?q=80&w=800&auto=format&fit=crop',
-    },
-    {
+      'id': '16',
       'title': 'Ubud',
       'subtitle': 'Bali, Indonesia',
       'imageUrl':
           'https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=800&auto=format&fit=crop',
     },
     {
-      'title': 'Lombok',
-      'subtitle': 'Indonesia',
+      'id': '1',
+      'title': 'Borobudur',
+      'subtitle': 'Magelang, Jawa Tengah',
       'imageUrl':
-          'https://images.unsplash.com/photo-1570789210967-2cac24afeb00?q=80&w=800&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1596402184320-417e7178b2cd?q=80&w=800&auto=format&fit=crop',
+    },
+    {
+      'id': '3',
+      'title': 'Gunung Bromo',
+      'subtitle': 'Probolinggo, Jawa Timur',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1588668214407-6ea9a6d8c272?q=80&w=800&auto=format&fit=crop',
+    },
+    {
+      'id': '46',
+      'title': 'Raja Ampat',
+      'subtitle': 'Papua Barat Daya',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1516690561799-46d8f74f9abf?q=80&w=800&auto=format&fit=crop',
+    },
+    {
+      'id': '26',
+      'title': 'Danau Toba',
+      'subtitle': 'Sumatera Utara',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1657728401984-6d65350a4944?q=80&w=800&auto=format&fit=crop',
+    },
+    {
+      'id': '20',
+      'title': 'Gunung Rinjani',
+      'subtitle': 'Lombok, NTB',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1698799330469-e53f68a91c08?q=80&w=800&auto=format&fit=crop',
     },
   ];
 
@@ -382,6 +388,7 @@ class _HalamanDestinationSearchState extends State<HalamanDestinationSearch> {
                                 MaterialPageRoute(
                                   builder: (context) => HalamanDestinationDetail(
                                     user: widget.user,
+                                    destinationId: int.tryParse(item['id'] ?? ''),
                                     destinationTitle: item['title'] != null && item['subtitle'] != null
                                         ? '${item['title']}, ${item['subtitle']}'
                                         : (item['title'] ?? 'Bali, Indonesia'),
