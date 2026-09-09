@@ -2,10 +2,10 @@ import 'package:card_swiper/card_swiper.dart';
 import 'package:flutter/material.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:project_tride/Constants/app_colors.dart';
-import 'package:project_tride/Database/db_helper.dart';
 import 'package:project_tride/Database/destination_model.dart';
-import 'package:project_tride/Database/favorite_model.dart';
 import 'package:project_tride/Models/user_model.dart';
+import 'package:project_tride/Services/destination_service.dart';
+import 'package:project_tride/Services/saved_places_service.dart';
 import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman budget/halaman_budget.dart';
@@ -39,34 +39,64 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
 
   final List<Map<String, dynamic>> _popularDestinations = [
     {
-      'id': 1,
-      'title': 'Rome',
-      'subtitle': 'Sejarah & Kuliner',
+      'id': 46,
+      'title': 'Raja Ampat',
+      'subtitle': 'Surga Bahari Dunia',
       'imageUrl':
-          'https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=600&auto=format&fit=crop',
-      'location': 'Italy · Culture',
-      'category': 'Culture',
-      'rating': 4.8,
+          'https://images.unsplash.com/photo-1516690561799-46d8f74f9abf?q=80&w=800&auto=format&fit=crop',
+      'location': 'Papua Barat Daya · Bahari',
+      'category': 'Bahari',
+      'rating': 5.0,
     },
     {
-      'id': 2,
-      'title': 'Maldives',
-      'subtitle': 'Relaksasi & Romantis',
+      'id': 1,
+      'title': 'Borobudur',
+      'subtitle': 'Kemegahan Candi Buddha',
       'imageUrl':
-          'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?q=80&w=600&auto=format&fit=crop',
-      'location': 'South Asia · Island',
-      'category': 'Relax',
+          'https://images.unsplash.com/photo-1596402184320-417e7178b2cd?q=80&w=800&auto=format&fit=crop',
+      'location': 'Jawa Tengah · Budaya',
+      'category': 'Budaya',
       'rating': 4.9,
     },
     {
-      'id': 6,
-      'title': 'Swiss Alps',
-      'subtitle': 'Petualangan & Alam',
+      'id': 23,
+      'title': 'Pulau Padar (Komodo)',
+      'subtitle': 'Pesona Alam Prasejarah',
       'imageUrl':
-          'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?q=80&w=600&auto=format&fit=crop',
-      'location': 'Switzerland · Nature',
-      'category': 'Nature',
-      'rating': 4.8,
+          'https://images.unsplash.com/photo-1516690561799-46d8f74f9abf?q=80&w=800&auto=format&fit=crop',
+      'location': 'Nusa Tenggara Timur · Alam',
+      'category': 'Alam',
+      'rating': 4.9,
+    },
+    {
+      'id': 3,
+      'title': 'Gunung Bromo',
+      'subtitle': 'Kaldera & Sunrise Magis',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1588668214407-6ea9a6d8c272?q=80&w=800&auto=format&fit=crop',
+      'location': 'Jawa Timur · Petualangan',
+      'category': 'Petualangan',
+      'rating': 4.9,
+    },
+    {
+      'id': 16,
+      'title': 'Ubud Sanctuary',
+      'subtitle': 'Ketenangan Sawah & Seni',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=800&auto=format&fit=crop',
+      'location': 'Bali · Budaya',
+      'category': 'Budaya',
+      'rating': 4.9,
+    },
+    {
+      'id': 39,
+      'title': 'Tana Toraja',
+      'subtitle': 'Tradisi Megalitik Kuno',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=800&auto=format&fit=crop',
+      'location': 'Sulawesi Selatan · Budaya',
+      'category': 'Budaya',
+      'rating': 4.9,
     },
   ];
 
@@ -98,16 +128,38 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
     super.initState();
     _currentNavIndex = widget.initialTab;
     _loadFavorites();
+    _loadPopularDestinations();
   }
 
   Future<void> _loadFavorites() async {
     try {
-      final userId = widget.user?.id ?? 1;
-      final favs = await DbHelper.instance.getFavoritesByUser(userId);
+      final favs = await SavedPlacesService.instance.getFavoriteIds();
       if (mounted) {
         setState(() {
           _favoritedDestinations.clear();
-          _favoritedDestinations.addAll(favs.map((f) => f.destinationId));
+          _favoritedDestinations.addAll(favs);
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadPopularDestinations() async {
+    try {
+      final dests = await DestinationService.instance.getPopularDestinations(limit: 6);
+      if (dests.isNotEmpty && mounted) {
+        setState(() {
+          _popularDestinations.clear();
+          for (final d in dests) {
+            _popularDestinations.add({
+              'id': d.id,
+              'title': d.name,
+              'subtitle': d.location,
+              'imageUrl': d.image,
+              'location': '${d.location} · ${d.category}',
+              'category': d.category,
+              'rating': d.rating,
+            });
+          }
         });
       }
     } catch (_) {}
@@ -216,7 +268,7 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                         builder: (context) =>
                             HalamanSavedPlaces(user: widget.user),
                       ),
-                    );
+                    ).then((_) => _loadFavorites());
                   },
                   child: Container(
                     width: 38,
@@ -836,6 +888,7 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                                 MaterialPageRoute(
                                   builder: (context) => HalamanDestinationDetail(
                                     user: widget.user,
+                                    destinationId: item['id'] as int?,
                                     destinationTitle: '${item['title']}, ${item['subtitle']}',
                                     imageUrl: item['imageUrl'],
                                   ),
@@ -846,10 +899,6 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                               margin: const EdgeInsets.only(bottom: 24),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(24),
-                                image: DecorationImage(
-                                  image: NetworkImage(item['imageUrl']),
-                                  fit: BoxFit.cover,
-                                ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.12),
@@ -858,135 +907,149 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                                   ),
                                 ],
                               ),
-                              child: Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(24),
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.transparent,
-                                      Colors.black.withValues(alpha: 0.8),
-                                    ],
-                                  ),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: Stack(
                                   children: [
-                                    // Heart Favorite Button
-                                    Align(
-                                      alignment: Alignment.topRight,
-                                      child: GestureDetector(
-                                        onTap: () async {
-                                           final userId = widget.user?.id ?? 1;
-                                           final itemId = item['id'] as int;
-                                           final isCurrentlyFav = _favoritedDestinations.contains(itemId);
-
-                                           try {
-                                             if (isCurrentlyFav) {
-                                               await DbHelper.instance.removeFavorite(userId, itemId);
-                                               if (mounted) {
-                                                 setState(() {
-                                                   _favoritedDestinations.remove(itemId);
-                                                 });
-                                               }
-                                               if (!mounted) return;
-                                               ScaffoldMessenger.of(context).removeCurrentSnackBar();
-                                               ScaffoldMessenger.of(context).showSnackBar(
-                                                 SnackBar(
-                                                   content: Text('${item['title']} dihapus dari Saved Places'),
-                                                   duration: const Duration(seconds: 1),
-                                                   behavior: SnackBarBehavior.floating,
-                                                 ),
-                                               );
-                                             } else {
-                                               await DbHelper.instance.ensureDestinationExists(
-                                                 DestinationModel(
-                                                   id: itemId,
-                                                   name: item['title'],
-                                                   location: item['location'] ?? item['subtitle'],
-                                                   description: item['subtitle'],
-                                                   image: item['imageUrl'],
-                                                   category: item['category'] ?? 'Culture',
-                                                   rating: (item['rating'] as num?)?.toDouble() ?? 4.8,
-                                                 ),
-                                               );
-
-                                               await DbHelper.instance.addFavorite(
-                                                 FavoriteModel(
-                                                   userId: userId,
-                                                   destinationId: itemId,
-                                                   createdAt: DateTime.now().toIso8601String(),
-                                                 ),
-                                               );
-                                               if (mounted) {
-                                                 setState(() {
-                                                   _favoritedDestinations.add(itemId);
-                                                 });
-                                               }
-
-                                               if (context.mounted) {
-                                                 Navigator.push(
-                                                   context,
-                                                   MaterialPageRoute(
-                                                     builder: (context) => HalamanSavedPlaces(
-                                                       user: widget.user,
-                                                     ),
-                                                   ),
-                                                 ).then((_) => _loadFavorites());
-                                               }
-                                             }
-                                           } catch (_) {}
-                                         },
-                                        child: Container(
-                                          padding: const EdgeInsets.all(9),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.25,
+                                    Positioned.fill(
+                                      child: Image.network(
+                                        item['imageUrl'],
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) =>
+                                            Container(
+                                              color: AppColors.surfaceVariant,
+                                              child: const Icon(
+                                                Icons.landscape_rounded,
+                                                size: 48,
+                                                color: AppColors.textSecondary,
+                                              ),
                                             ),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            isFav
-                                                ? Icons.favorite_rounded
-                                                : Icons.favorite_border_rounded,
-                                            color: isFav
-                                                ? Colors.redAccent
-                                                : Colors.white,
-                                            size: 20,
-                                          ),
-                                        ),
                                       ),
                                     ),
+                                    Positioned.fill(
+                                      child: Container(
+                                        padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Colors.transparent,
+                                              Colors.black.withValues(alpha: 0.8),
+                                            ],
+                                          ),
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            // Heart Favorite Button
+                                            Align(
+                                              alignment: Alignment.topRight,
+                                              child: GestureDetector(
+                                                onTap: () async {
+                                                  final itemId = item['id'] as int;
+                                                  final isCurrentlyFav = _favoritedDestinations.contains(itemId);
+                                                  final messenger = ScaffoldMessenger.of(context);
 
-                                    // Destination Text
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item['title'],
-                                          style: const TextStyle(
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                            fontFamily: 'Plus Jakarta Sans',
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          item['subtitle'],
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.white.withValues(
-                                              alpha: 0.85,
+                                                  try {
+                                                    if (isCurrentlyFav) {
+                                                      await SavedPlacesService.instance.removeFavorite(itemId);
+                                                      if (mounted) {
+                                                        setState(() {
+                                                          _favoritedDestinations.remove(itemId);
+                                                        });
+                                                        messenger.removeCurrentSnackBar();
+                                                        messenger.showSnackBar(
+                                                          SnackBar(
+                                                            content: Text('${item['title']} dihapus dari Saved Places'),
+                                                            duration: const Duration(seconds: 1),
+                                                            behavior: SnackBarBehavior.floating,
+                                                          ),
+                                                        );
+                                                      }
+                                                    } else {
+                                                      final destModel = DestinationModel(
+                                                        id: itemId,
+                                                        name: item['title'],
+                                                        location: item['location'] ?? item['subtitle'],
+                                                        description: item['subtitle'],
+                                                        image: item['imageUrl'],
+                                                        category: item['category'] ?? 'Culture',
+                                                        rating: (item['rating'] as num?)?.toDouble() ?? 4.8,
+                                                      );
+
+                                                      await SavedPlacesService.instance.addFavorite(destModel);
+                                                      if (mounted) {
+                                                        setState(() {
+                                                          _favoritedDestinations.add(itemId);
+                                                        });
+                                                      }
+
+                                                      if (context.mounted) {
+                                                        Navigator.push(
+                                                          context,
+                                                          MaterialPageRoute(
+                                                            builder: (context) => HalamanSavedPlaces(
+                                                              user: widget.user,
+                                                            ),
+                                                          ),
+                                                        ).then((_) => _loadFavorites());
+                                                      }
+                                                    }
+                                                  } catch (_) {}
+                                                },
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(9),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white.withValues(
+                                                      alpha: 0.25,
+                                                    ),
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: Icon(
+                                                    isFav
+                                                        ? Icons.favorite_rounded
+                                                        : Icons.favorite_border_rounded,
+                                                    color: isFav
+                                                        ? Colors.redAccent
+                                                        : Colors.white,
+                                                    size: 20,
+                                                  ),
+                                                ),
+                                              ),
                                             ),
-                                          ),
+
+                                            // Destination Text
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  item['title'],
+                                                  style: const TextStyle(
+                                                    fontSize: 24,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                    fontFamily: 'Plus Jakarta Sans',
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  item['subtitle'],
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    color: Colors.white.withValues(
+                                                      alpha: 0.85,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
                                         ),
-                                      ],
+                                      ),
                                     ),
                                   ],
                                 ),

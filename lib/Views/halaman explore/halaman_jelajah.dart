@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:project_tride/Constants/app_colors.dart';
-import 'package:project_tride/Database/db_helper.dart';
 import 'package:project_tride/Database/destination_model.dart';
-import 'package:project_tride/Database/favorite_model.dart';
 import 'package:project_tride/Models/user_model.dart';
+import 'package:project_tride/Services/destination_service.dart';
+import 'package:project_tride/Services/saved_places_service.dart';
 import 'package:project_tride/Widgets/category_filter_bar.dart';
 import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
@@ -39,25 +39,6 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
     'Alam',
   ];
 
-  final List<Map<String, dynamic>> _curatedCollections = [
-    {
-      'id': 1,
-      'tag': 'WISATA PANTAI',
-      'title': 'Impian\nMediterranean',
-      'destinations': '12 Destinasi',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=800&auto=format&fit=crop',
-    },
-    {
-      'id': 2,
-      'tag': 'ALAM BEBAS',
-      'title': 'Ketenangan\nPegunungan',
-      'destinations': '8 Destinasi',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop',
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -67,12 +48,11 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
 
   Future<void> _loadFavorites() async {
     try {
-      final userId = widget.user?.id ?? 1;
-      final favs = await DbHelper.instance.getFavoritesByUser(userId);
+      final favs = await SavedPlacesService.instance.getFavoriteIds();
       if (mounted) {
         setState(() {
           _favorites.clear();
-          _favorites.addAll(favs.map((f) => f.destinationId));
+          _favorites.addAll(favs);
         });
       }
     } catch (_) {}
@@ -81,159 +61,8 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
   Future<void> _loadDestinations() async {
     setState(() => _isLoadingDestinations = true);
     try {
-      final seedList = [
-        DestinationModel(
-          id: 1,
-          name: 'Rome',
-          location: 'Italy · Culture',
-          description:
-              'Historical city rich in architecture, ancient ruins, and world-class culinary experiences.',
-          image:
-              'https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=1200&auto=format&fit=crop',
-          category: 'Culture',
-          rating: 4.8,
-          estimatedBudget: 2500000,
-          bestTime: 'May - Oct',
-          placeType: 'Perkotaan',
-        ),
-        DestinationModel(
-          id: 2,
-          name: 'Maldives',
-          location: 'South Asia · Island',
-          description:
-              'Crystal clear waters, overwater bungalows, and pristine white sand beaches.',
-          image:
-              'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?q=80&w=800&auto=format&fit=crop',
-          category: 'Relax',
-          rating: 4.9,
-          estimatedBudget: 4500000,
-          bestTime: 'Nov - Apr',
-          placeType: 'Pantai',
-        ),
-        DestinationModel(
-          id: 3,
-          name: 'Kyoto',
-          location: 'Japan · Culture',
-          description:
-              'Traditional wooden houses, serene Zen gardens, and historic Shinto shrines.',
-          image:
-              'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=800&auto=format&fit=crop',
-          category: 'Culture',
-          rating: 4.8,
-          estimatedBudget: 3200000,
-          bestTime: 'Mar - May',
-          placeType: 'Perkotaan',
-        ),
-        DestinationModel(
-          id: 4,
-          name: 'Icelandia',
-          location: 'North Europe · Nature',
-          description:
-              'Dramatic volcanic landscapes, majestic waterfalls, and mesmerizing Northern Lights.',
-          image:
-              'https://images.unsplash.com/photo-1504893524553-b855bce32c67?q=80&w=800&auto=format&fit=crop',
-          category: 'Nature',
-          rating: 4.9,
-          estimatedBudget: 5000000,
-          bestTime: 'Sep - Mar',
-          placeType: 'Alam',
-        ),
-        DestinationModel(
-          id: 5,
-          name: 'Marrakech',
-          location: 'Morocco · Culture',
-          description:
-              'Vibrant souks, stunning riads, and rich African-Arabian culture.',
-          image:
-              'https://images.unsplash.com/photo-1597212618440-806262de4f6b?q=80&w=800&auto=format&fit=crop',
-          category: 'Culture',
-          rating: 4.7,
-          estimatedBudget: 2200000,
-          bestTime: 'Oct - Apr',
-          placeType: 'Perkotaan',
-        ),
-        DestinationModel(
-          id: 6,
-          name: 'Zermatt',
-          location: 'Switzerland · Nature',
-          description:
-              'Famous mountain resort at the foot of the iconic Matterhorn peak.',
-          image:
-              'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?q=80&w=800&auto=format&fit=crop',
-          category: 'Nature',
-          rating: 4.8,
-          estimatedBudget: 4800000,
-          bestTime: 'Dec - Mar',
-          placeType: 'Pegunungan',
-        ),
-        DestinationModel(
-          id: 7,
-          name: 'Tokyo',
-          location: 'Japan · Urban',
-          description:
-              'Futuristic metropolis blending ultramodern skyscrapers with historic temples.',
-          image:
-              'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=600&auto=format&fit=crop',
-          category: 'Urban',
-          rating: 4.9,
-          estimatedBudget: 3800000,
-          bestTime: 'Mar - May',
-          placeType: 'Perkotaan',
-        ),
-        DestinationModel(
-          id: 8,
-          name: 'Santorini',
-          location: 'Greece · Relax',
-          description:
-              'White-washed cliffside villas overlooking dramatic Aegean Sea views.',
-          image:
-              'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?q=80&w=600&auto=format&fit=crop',
-          category: 'Relax',
-          rating: 4.9,
-          estimatedBudget: 4200000,
-          bestTime: 'May - Sep',
-          placeType: 'Pantai',
-        ),
-        DestinationModel(
-          id: 9,
-          name: 'Labuan Bajo',
-          location: 'Indonesia · Nature',
-          description:
-              'Gateway to Komodo National Park with pristine beaches and island adventures.',
-          image:
-              'https://images.unsplash.com/photo-1516690561799-46d8f74f9abf?q=80&w=600&auto=format&fit=crop',
-          category: 'Nature',
-          rating: 4.8,
-          estimatedBudget: 2800000,
-          bestTime: 'Apr - Oct',
-          placeType: 'Pantai',
-        ),
-        DestinationModel(
-          id: 10,
-          name: 'Desa Penglipuran',
-          location: 'Bali · Pedesaan',
-          description:
-              'Desa adat terbersih dengan arsitektur tradisional Bali yang asri dan tenang.',
-          image:
-              'https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=800&auto=format&fit=crop',
-          category: 'Pedesaan',
-          rating: 4.7,
-          estimatedBudget: 1500000,
-          bestTime: 'Apr - Oct',
-          placeType: 'Pedesaan',
-        ),
-      ];
-
-      for (var dest in seedList) {
-        await DbHelper.instance.ensureDestinationExists(dest);
-      }
-
-      List<DestinationModel> results;
-      if (_selectedCategory == 'Semua') {
-        results = await DestinationModel.getAll();
-      } else {
-        results = await DestinationModel.getByPlaceType(_selectedCategory);
-      }
+      final results = await DestinationService.instance
+          .getDestinationsByPlaceType(_selectedCategory);
 
       if (mounted) {
         setState(() {
@@ -357,7 +186,7 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                         builder: (context) =>
                             HalamanSavedPlaces(user: widget.user),
                       ),
-                    );
+                    ).then((_) => _loadFavorites());
                   },
                   child: Container(
                     width: 38,
@@ -716,6 +545,8 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                                   MaterialPageRoute(
                                     builder: (context) => HalamanDestinationDetail(
                                       user: widget.user,
+                                      destinationId: item.id,
+                                      destination: item,
                                       destinationTitle: item.name,
                                       categoryTag:
                                           (item.placeType ?? item.category)
@@ -781,36 +612,30 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                                           child: GestureDetector(
                                             onTap: () async {
                                               if (itemId == null) return;
-                                              final userId =
-                                                  widget.user?.id ?? 1;
-                                              final isCurrentlyFav = _favorites
-                                                  .contains(itemId);
+                                              final isCurrentlyFav =
+                                                  _favorites.contains(itemId);
+                                              final messenger =
+                                                  ScaffoldMessenger.of(context);
 
                                               try {
                                                 if (isCurrentlyFav) {
-                                                  await DbHelper.instance
-                                                      .removeFavorite(
-                                                        userId,
-                                                        itemId,
-                                                      );
+                                                  await SavedPlacesService
+                                                      .instance
+                                                      .removeFavorite(itemId);
                                                   if (mounted) {
                                                     setState(() {
                                                       _favorites.remove(itemId);
                                                     });
-                                                    ScaffoldMessenger.of(
-                                                      context,
-                                                    ).removeCurrentSnackBar();
-                                                    ScaffoldMessenger.of(
-                                                      context,
-                                                    ).showSnackBar(
+                                                    messenger
+                                                        .removeCurrentSnackBar();
+                                                    messenger.showSnackBar(
                                                       SnackBar(
                                                         content: Text(
                                                           '${item.name} dihapus dari Saved Places',
                                                         ),
-                                                        duration:
-                                                            const Duration(
-                                                              seconds: 1,
-                                                            ),
+                                                        duration: const Duration(
+                                                          seconds: 1,
+                                                        ),
                                                         behavior:
                                                             SnackBarBehavior
                                                                 .floating,
@@ -818,20 +643,9 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                                                     );
                                                   }
                                                 } else {
-                                                  await DbHelper.instance
-                                                      .ensureDestinationExists(
-                                                        item,
-                                                      );
-
-                                                  await DbHelper.instance
-                                                      .addFavorite(
-                                                        FavoriteModel(
-                                                          userId: userId,
-                                                          destinationId: itemId,
-                                                          createdAt: DateTime.now()
-                                                              .toIso8601String(),
-                                                        ),
-                                                      );
+                                                  await SavedPlacesService
+                                                      .instance
+                                                      .addFavorite(item);
                                                   if (mounted) {
                                                     setState(() {
                                                       _favorites.add(itemId);
