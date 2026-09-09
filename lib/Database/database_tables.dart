@@ -107,4 +107,5 @@ class DestinationColumns {
   static const String latitude = 'latitude';
   static const String longitude = 'longitude';
   static const String placeType = 'place_type';
+  static const String shortDescription = 'short_description';
 }
