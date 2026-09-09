@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:getwidget/getwidget.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:project_tride/Constants/app_colors.dart';
-import 'package:project_tride/Database/db_helper.dart';
 import 'package:project_tride/Database/destination_model.dart';
-import 'package:project_tride/Database/favorite_model.dart';
 import 'package:project_tride/Database/user_model.dart';
+import 'package:project_tride/Services/saved_places_service.dart';
 import 'package:project_tride/Widgets/category_filter_bar.dart';
 import 'package:project_tride/Widgets/destination_grid_card.dart';
 import 'package:project_tride/Widgets/destination_hero_card.dart';
@@ -33,153 +31,9 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
     'Alam',
   ];
 
-  // List of saved places loaded from DB or default initial seed
+  // List of saved places loaded from Firestore
   List<DestinationModel> _savedDestinations = [];
   final Set<int> _favoriteIds = {};
-
-  // Initial seed dataset matching Stitch design mockup
-  final List<DestinationModel> _initialSeedDestinations = [
-    DestinationModel(
-      id: 1,
-      name: 'Rome',
-      location: 'Italy · Culture',
-      description:
-          'Historical city rich in architecture, ancient ruins, and world-class culinary experiences.',
-      image:
-          'https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=1200&auto=format&fit=crop',
-      category: 'Culture',
-      rating: 4.8,
-      estimatedBudget: 2500000,
-      bestTime: 'May - Oct',
-      placeType: 'Perkotaan',
-    ),
-    DestinationModel(
-      id: 2,
-      name: 'Maldives',
-      location: 'South Asia · Island',
-      description:
-          'Crystal clear waters, overwater bungalows, and pristine white sand beaches.',
-      image:
-          'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?q=80&w=800&auto=format&fit=crop',
-      category: 'Relax',
-      rating: 4.9,
-      estimatedBudget: 4500000,
-      bestTime: 'Nov - Apr',
-      placeType: 'Pantai',
-    ),
-    DestinationModel(
-      id: 3,
-      name: 'Kyoto',
-      location: 'Japan · Culture',
-      description:
-          'Traditional wooden houses, serene Zen gardens, and historic Shinto shrines.',
-      image:
-          'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=800&auto=format&fit=crop',
-      category: 'Culture',
-      rating: 4.8,
-      estimatedBudget: 3200000,
-      bestTime: 'Mar - May',
-      placeType: 'Perkotaan',
-    ),
-    DestinationModel(
-      id: 4,
-      name: 'Icelandia',
-      location: 'North Europe · Nature',
-      description:
-          'Dramatic volcanic landscapes, majestic waterfalls, and mesmerizing Northern Lights.',
-      image:
-          'https://images.unsplash.com/photo-1504893524553-b855bce32c67?q=80&w=800&auto=format&fit=crop',
-      category: 'Nature',
-      rating: 4.9,
-      estimatedBudget: 5000000,
-      bestTime: 'Sep - Mar',
-      placeType: 'Alam',
-    ),
-    DestinationModel(
-      id: 5,
-      name: 'Marrakech',
-      location: 'Morocco · Culture',
-      description:
-          'Vibrant souks, stunning riads, and rich African-Arabian culture.',
-      image:
-          'https://images.unsplash.com/photo-1597212618440-806262de4f6b?q=80&w=800&auto=format&fit=crop',
-      category: 'Culture',
-      rating: 4.7,
-      estimatedBudget: 2200000,
-      bestTime: 'Oct - Apr',
-      placeType: 'Perkotaan',
-    ),
-    DestinationModel(
-      id: 6,
-      name: 'Zermatt',
-      location: 'Switzerland · Nature',
-      description:
-          'Famous mountain resort at the foot of the iconic Matterhorn peak.',
-      image:
-          'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?q=80&w=800&auto=format&fit=crop',
-      category: 'Nature',
-      rating: 4.8,
-      estimatedBudget: 4800000,
-      bestTime: 'Dec - Mar',
-      placeType: 'Pegunungan',
-    ),
-    DestinationModel(
-      id: 7,
-      name: 'Tokyo',
-      location: 'Japan · Urban',
-      description:
-          'Futuristic metropolis blending ultramodern skyscrapers with historic temples.',
-      image:
-          'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=600&auto=format&fit=crop',
-      category: 'Urban',
-      rating: 4.9,
-      estimatedBudget: 3800000,
-      bestTime: 'Mar - May',
-      placeType: 'Perkotaan',
-    ),
-    DestinationModel(
-      id: 8,
-      name: 'Santorini',
-      location: 'Greece · Relax',
-      description:
-          'White-washed cliffside villas overlooking dramatic Aegean Sea views.',
-      image:
-          'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?q=80&w=600&auto=format&fit=crop',
-      category: 'Relax',
-      rating: 4.9,
-      estimatedBudget: 4200000,
-      bestTime: 'May - Sep',
-      placeType: 'Pantai',
-    ),
-    DestinationModel(
-      id: 9,
-      name: 'Labuan Bajo',
-      location: 'Indonesia · Nature',
-      description:
-          'Gateway to Komodo National Park with pristine beaches and island adventures.',
-      image:
-          'https://images.unsplash.com/photo-1516690561799-46d8f74f9abf?q=80&w=600&auto=format&fit=crop',
-      category: 'Nature',
-      rating: 4.8,
-      estimatedBudget: 2800000,
-      bestTime: 'Apr - Oct',
-      placeType: 'Pantai',
-    ),
-    DestinationModel(
-      id: 10,
-      name: 'Desa Penglipuran',
-      location: 'Bali · Pedesaan',
-      description:
-          'Desa adat terbersih dengan arsitektur tradisional Bali yang asri dan tenang.',
-      image:
-          'https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=800&auto=format&fit=crop',
-      category: 'Pedesaan',
-      rating: 4.7,
-      estimatedBudget: 1500000,
-      bestTime: 'Apr - Oct',
-      placeType: 'Pedesaan',
-    ),
-  ];
 
   @override
   void initState() {
@@ -190,49 +44,28 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
   Future<void> _loadSavedPlaces() async {
     setState(() => _isLoading = true);
     try {
-      final db = DbHelper.instance;
-      final userId = widget.user?.id ?? 1;
+      final savedList = await SavedPlacesService.instance.getSavedPlaces();
+      final favDestIds = savedList
+          .where((d) => d.id != null)
+          .map((d) => d.id!)
+          .toSet();
 
-      // Ensure seed destinations exist in SQLite
-      for (var dest in _initialSeedDestinations) {
-        await db.ensureDestinationExists(dest);
+      if (mounted) {
+        setState(() {
+          _savedDestinations = savedList;
+          _favoriteIds.clear();
+          _favoriteIds.addAll(favDestIds);
+          _isLoading = false;
+        });
       }
-      List<DestinationModel> dbDestinations = await db.getDestinations();
-
-      // Ensure default saved places start empty for users.
-      // Clean up old auto-seeded favorites once if present from previous version
-      final prefs = await SharedPreferences.getInstance();
-      final cleanupKey = 'has_cleared_auto_seed_v1_$userId';
-      final hasClearedAutoSeed = prefs.getBool(cleanupKey) ?? false;
-      if (!hasClearedAutoSeed) {
-        // Clear initial auto-seeded favorites for a fresh empty starting state
-        for (var dest in dbDestinations) {
-          if (dest.id != null) {
-            await db.removeFavorite(userId, dest.id!);
-          }
-        }
-        await prefs.setBool(cleanupKey, true);
-      }
-
-      final updatedFavorites = await db.getFavoritesByUser(userId);
-      final favDestIds = updatedFavorites.map((f) => f.destinationId).toSet();
-
-      final filteredDestinations = dbDestinations
-          .where((d) => d.id != null && favDestIds.contains(d.id!))
-          .toList();
-
-      setState(() {
-        _savedDestinations = filteredDestinations;
-        _favoriteIds.clear();
-        _favoriteIds.addAll(favDestIds);
-        _isLoading = false;
-      });
     } catch (e) {
-      setState(() {
-        _savedDestinations = [];
-        _favoriteIds.clear();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _savedDestinations = [];
+          _favoriteIds.clear();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -240,7 +73,6 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
     final destId = destination.id;
     if (destId == null) return;
 
-    final userId = widget.user?.id ?? 1;
     final isFav = _favoriteIds.contains(destId);
 
     setState(() {
@@ -257,11 +89,10 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
 
     try {
       if (isFav) {
-        await DbHelper.instance.removeFavorite(userId, destId);
+        await SavedPlacesService.instance.removeFavorite(destId);
         if (!mounted) return;
 
         final messenger = ScaffoldMessenger.of(context);
-
         messenger.removeCurrentSnackBar();
 
         messenger.showSnackBar(
@@ -288,13 +119,7 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
           }
         });
       } else {
-        await DbHelper.instance.addFavorite(
-          FavoriteModel(
-            userId: userId,
-            destinationId: destId,
-            createdAt: DateTime.now().toIso8601String(),
-          ),
-        );
+        await SavedPlacesService.instance.addFavorite(destination);
         if (mounted) {
           GFToast.showToast(
             '${destination.name} saved to wishlist!',
@@ -453,6 +278,8 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
                                   MaterialPageRoute(
                                     builder: (context) => HalamanDestinationDetail(
                                       user: widget.user,
+                                      destinationId: heroPlace.id,
+                                      destination: heroPlace,
                                       destinationTitle: heroPlace.name,
                                       categoryTag: heroPlace.category.toUpperCase(),
                                       imageUrl: heroPlace.image,
@@ -505,6 +332,8 @@ class _HalamanSavedPlacesState extends State<HalamanSavedPlaces> {
                                       MaterialPageRoute(
                                         builder: (context) => HalamanDestinationDetail(
                                           user: widget.user,
+                                          destinationId: place.id,
+                                          destination: place,
                                           destinationTitle: place.name,
                                           categoryTag: place.category.toUpperCase(),
                                           imageUrl: place.image,
