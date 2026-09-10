@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:project_tride/Constants/app_colors.dart';
 import 'package:project_tride/Database/destination_model.dart';
+import 'package:project_tride/Database/trip_model.dart';
 import 'package:project_tride/Models/user_model.dart';
 import 'package:project_tride/Services/destination_service.dart';
 import 'package:project_tride/Services/saved_places_service.dart';
+import 'package:project_tride/Services/trip_service.dart';
 import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman budget/halaman_budget.dart';
@@ -20,12 +22,14 @@ class HalamanBeranda extends StatefulWidget {
   final UserModel? user;
   final int initialTab;
   final bool isEmbeddedInShell;
+  final ValueChanged<int>? onSwitchTab;
 
   const HalamanBeranda({
     super.key,
     this.user,
     this.initialTab = 0,
     this.isEmbeddedInShell = false,
+    this.onSwitchTab,
   });
 
   @override
@@ -36,6 +40,8 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
   late int _currentNavIndex;
   final Set<int> _favoritedDestinations = {};
   final TextEditingController _searchController = TextEditingController();
+  TripModel? _upcomingTrip;
+  bool _isLoadingTrip = true;
 
   final List<Map<String, dynamic>> _popularDestinations = [
     {
@@ -129,6 +135,25 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
     _currentNavIndex = widget.initialTab;
     _loadFavorites();
     _loadPopularDestinations();
+    _loadUpcomingTrip();
+  }
+
+  Future<void> _loadUpcomingTrip() async {
+    try {
+      final trip = await TripService.instance.getUpcomingTrip();
+      if (mounted) {
+        setState(() {
+          _upcomingTrip = trip;
+          _isLoadingTrip = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoadingTrip = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadFavorites() async {
@@ -145,7 +170,9 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
 
   Future<void> _loadPopularDestinations() async {
     try {
-      final dests = await DestinationService.instance.getPopularDestinations(limit: 6);
+      final dests = await DestinationService.instance.getPopularDestinations(
+        limit: 6,
+      );
       if (dests.isNotEmpty && mounted) {
         setState(() {
           _popularDestinations.clear();
@@ -289,12 +316,17 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                 padding: const EdgeInsets.only(right: 20),
                 child: GestureDetector(
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => HalamanProfil(user: widget.user),
-                      ),
-                    );
+                    if (widget.onSwitchTab != null) {
+                      widget.onSwitchTab!(4);
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              HalamanProfil(user: widget.user),
+                        ),
+                      );
+                    }
                   },
                   child: GFAvatar(
                     radius: 19,
@@ -305,12 +337,13 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                         width: 38,
                         height: 38,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Image.asset(
-                          'assets/image/playstore.png',
-                          width: 38,
-                          height: 38,
-                          fit: BoxFit.cover,
-                        ),
+                        errorBuilder: (context, error, stackTrace) =>
+                            Image.asset(
+                              'assets/image/playstore.png',
+                              width: 38,
+                              height: 38,
+                              fit: BoxFit.cover,
+                            ),
                       ),
                     ),
                   ),
@@ -335,10 +368,11 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                             child: Image.network(
                               'https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=1000&auto=format&fit=crop',
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Image.asset(
-                                'assets/image/bali.jpeg',
-                                fit: BoxFit.cover,
-                              ),
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Image.asset(
+                                    'assets/image/bali.jpeg',
+                                    fit: BoxFit.cover,
+                                  ),
                             ),
                           ),
                           Positioned.fill(
@@ -394,7 +428,9 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      HalamanDestinationSearch(user: widget.user),
+                                      HalamanDestinationSearch(
+                                        user: widget.user,
+                                      ),
                                 ),
                               );
                             },
@@ -533,288 +569,7 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                 ),
 
                 // Upcoming Trip Section
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Upcoming Trip",
-                        style: TextStyle(
-                          fontFamily: 'Plus Jakarta Sans',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 22,
-                          color: textNavy,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Boarding Pass Ticket Container
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => HalamanTripDetail(
-                                user: widget.user,
-                                title: 'Kyoto Autumn Escape',
-                                dateRange: '14 - 21 Oct 2024',
-                                status: 'Confirmed',
-                                countdown: '2 Minggu',
-                                imageUrl:
-                                    'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=800&auto=format&fit=crop',
-                              ),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 15,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              // Ticket Top Stub
-                              Padding(
-                                padding: const EdgeInsets.all(20),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "DEPARTURE",
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.grey.shade500,
-                                            letterSpacing: 0.8,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        const Text(
-                                          "OCT 14",
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                            color: textNavy,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-
-                                    // Orbit Ring Motif Indicator
-                                    Container(
-                                      width: 44,
-                                      height: 44,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: primaryBlue.withValues(
-                                            alpha: 0.2,
-                                          ),
-                                          width: 2,
-                                        ),
-                                      ),
-                                      child: Center(
-                                        child: Container(
-                                          width: 32,
-                                          height: 32,
-                                          decoration: const BoxDecoration(
-                                            color: Color(0xFF2563EB),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.flight_takeoff_rounded,
-                                            color: Colors.white,
-                                            size: 18,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          "DURATION",
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.grey.shade500,
-                                            letterSpacing: 0.8,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        const Text(
-                                          "7 DAYS",
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                            color: textNavy,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              // Perforation Dashed Line
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 12,
-                                    height: 24,
-                                    decoration: const BoxDecoration(
-                                      color: bgCloud,
-                                      borderRadius: BorderRadius.only(
-                                        topRight: Radius.circular(12),
-                                        bottomRight: Radius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: LayoutBuilder(
-                                      builder: (context, constraints) {
-                                        return Flex(
-                                          direction: Axis.horizontal,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: List.generate(
-                                            (constraints.constrainWidth() / 10)
-                                                .floor(),
-                                            (_) => SizedBox(
-                                              width: 5,
-                                              height: 1.5,
-                                              child: DecoratedBox(
-                                                decoration: BoxDecoration(
-                                                  color: Colors.grey.shade300,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  Container(
-                                    width: 12,
-                                    height: 24,
-                                    decoration: const BoxDecoration(
-                                      color: bgCloud,
-                                      borderRadius: BorderRadius.only(
-                                        topLeft: Radius.circular(12),
-                                        bottomLeft: Radius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              // Ticket Bottom Image & Info
-                              Container(
-                                height: 170,
-                                decoration: const BoxDecoration(
-                                  borderRadius: BorderRadius.only(
-                                    bottomLeft: Radius.circular(24),
-                                    bottomRight: Radius.circular(24),
-                                  ),
-                                  image: DecorationImage(
-                                    image: NetworkImage(
-                                      'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=800&auto=format&fit=crop',
-                                    ),
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    borderRadius: const BorderRadius.only(
-                                      bottomLeft: Radius.circular(24),
-                                      bottomRight: Radius.circular(24),
-                                    ),
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        Colors.transparent,
-                                        Colors.black.withValues(alpha: 0.8),
-                                      ],
-                                    ),
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: primaryBlue.withValues(
-                                            alpha: 0.9,
-                                          ),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: const Text(
-                                          "PREPARING",
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                            letterSpacing: 0.6,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      const Text(
-                                        "Kyoto Autumn Escape",
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const Row(
-                                        children: [
-                                          Icon(
-                                            Icons.location_on_rounded,
-                                            color: Colors.white70,
-                                            size: 14,
-                                          ),
-                                          SizedBox(width: 4),
-                                          Text(
-                                            "Kyoto, Japan",
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.white70,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildUpcomingTripSection(textNavy, primaryBlue, bgCloud),
 
                 // Popular Destinations Carousel Section
                 Column(
@@ -889,7 +644,8 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                                   builder: (context) => HalamanDestinationDetail(
                                     user: widget.user,
                                     destinationId: item['id'] as int?,
-                                    destinationTitle: '${item['title']}, ${item['subtitle']}',
+                                    destinationTitle:
+                                        '${item['title']}, ${item['subtitle']}',
                                     imageUrl: item['imageUrl'],
                                   ),
                                 ),
@@ -915,8 +671,12 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                                       child: Image.network(
                                         item['imageUrl'],
                                         fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) =>
-                                            Container(
+                                        errorBuilder:
+                                            (
+                                              context,
+                                              error,
+                                              stackTrace,
+                                            ) => Container(
                                               color: AppColors.surfaceVariant,
                                               child: const Icon(
                                                 Icons.landscape_rounded,
@@ -935,37 +695,59 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                                             end: Alignment.bottomCenter,
                                             colors: [
                                               Colors.transparent,
-                                              Colors.black.withValues(alpha: 0.8),
+                                              Colors.black.withValues(
+                                                alpha: 0.8,
+                                              ),
                                             ],
                                           ),
                                         ),
                                         child: Column(
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             // Heart Favorite Button
                                             Align(
                                               alignment: Alignment.topRight,
                                               child: GestureDetector(
                                                 onTap: () async {
-                                                  final itemId = item['id'] as int;
-                                                  final isCurrentlyFav = _favoritedDestinations.contains(itemId);
-                                                  final messenger = ScaffoldMessenger.of(context);
+                                                  final itemId =
+                                                      item['id'] as int;
+                                                  final isCurrentlyFav =
+                                                      _favoritedDestinations
+                                                          .contains(itemId);
+                                                  final messenger =
+                                                      ScaffoldMessenger.of(
+                                                        context,
+                                                      );
 
                                                   try {
                                                     if (isCurrentlyFav) {
-                                                      await SavedPlacesService.instance.removeFavorite(itemId);
+                                                      await SavedPlacesService
+                                                          .instance
+                                                          .removeFavorite(
+                                                            itemId,
+                                                          );
                                                       if (mounted) {
                                                         setState(() {
-                                                          _favoritedDestinations.remove(itemId);
+                                                          _favoritedDestinations
+                                                              .remove(itemId);
                                                         });
-                                                        messenger.removeCurrentSnackBar();
+                                                        messenger
+                                                            .removeCurrentSnackBar();
                                                         messenger.showSnackBar(
                                                           SnackBar(
-                                                            content: Text('${item['title']} dihapus dari Saved Places'),
-                                                            duration: const Duration(seconds: 1),
-                                                            behavior: SnackBarBehavior.floating,
+                                                            content: Text(
+                                                              '${item['title']} dihapus dari Saved Places',
+                                                            ),
+                                                            duration:
+                                                                const Duration(
+                                                                  seconds: 1,
+                                                                ),
+                                                            behavior:
+                                                                SnackBarBehavior
+                                                                    .floating,
                                                           ),
                                                         );
                                                       }
@@ -973,17 +755,31 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                                                       final destModel = DestinationModel(
                                                         id: itemId,
                                                         name: item['title'],
-                                                        location: item['location'] ?? item['subtitle'],
-                                                        description: item['subtitle'],
+                                                        location:
+                                                            item['location'] ??
+                                                            item['subtitle'],
+                                                        description:
+                                                            item['subtitle'],
                                                         image: item['imageUrl'],
-                                                        category: item['category'] ?? 'Culture',
-                                                        rating: (item['rating'] as num?)?.toDouble() ?? 4.8,
+                                                        category:
+                                                            item['category'] ??
+                                                            'Culture',
+                                                        rating:
+                                                            (item['rating']
+                                                                    as num?)
+                                                                ?.toDouble() ??
+                                                            4.8,
                                                       );
 
-                                                      await SavedPlacesService.instance.addFavorite(destModel);
+                                                      await SavedPlacesService
+                                                          .instance
+                                                          .addFavorite(
+                                                            destModel,
+                                                          );
                                                       if (mounted) {
                                                         setState(() {
-                                                          _favoritedDestinations.add(itemId);
+                                                          _favoritedDestinations
+                                                              .add(itemId);
                                                         });
                                                       }
 
@@ -991,27 +787,36 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                                                         Navigator.push(
                                                           context,
                                                           MaterialPageRoute(
-                                                            builder: (context) => HalamanSavedPlaces(
-                                                              user: widget.user,
-                                                            ),
+                                                            builder: (context) =>
+                                                                HalamanSavedPlaces(
+                                                                  user: widget
+                                                                      .user,
+                                                                ),
                                                           ),
-                                                        ).then((_) => _loadFavorites());
+                                                        ).then(
+                                                          (_) =>
+                                                              _loadFavorites(),
+                                                        );
                                                       }
                                                     }
                                                   } catch (_) {}
                                                 },
                                                 child: Container(
-                                                  padding: const EdgeInsets.all(9),
+                                                  padding: const EdgeInsets.all(
+                                                    9,
+                                                  ),
                                                   decoration: BoxDecoration(
-                                                    color: Colors.white.withValues(
-                                                      alpha: 0.25,
-                                                    ),
+                                                    color: Colors.white
+                                                        .withValues(
+                                                          alpha: 0.25,
+                                                        ),
                                                     shape: BoxShape.circle,
                                                   ),
                                                   child: Icon(
                                                     isFav
                                                         ? Icons.favorite_rounded
-                                                        : Icons.favorite_border_rounded,
+                                                        : Icons
+                                                              .favorite_border_rounded,
                                                     color: isFav
                                                         ? Colors.redAccent
                                                         : Colors.white,
@@ -1032,7 +837,8 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                                                     fontSize: 24,
                                                     fontWeight: FontWeight.bold,
                                                     color: Colors.white,
-                                                    fontFamily: 'Plus Jakarta Sans',
+                                                    fontFamily:
+                                                        'Plus Jakarta Sans',
                                                   ),
                                                 ),
                                                 const SizedBox(height: 2),
@@ -1040,9 +846,10 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                                                   item['subtitle'],
                                                   style: TextStyle(
                                                     fontSize: 14,
-                                                    color: Colors.white.withValues(
-                                                      alpha: 0.85,
-                                                    ),
+                                                    color: Colors.white
+                                                        .withValues(
+                                                          alpha: 0.85,
+                                                        ),
                                                   ),
                                                 ),
                                               ],
@@ -1155,6 +962,453 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
               selectedIndex: _currentNavIndex,
               onDestinationSelected: _onNavTapped,
             ),
+    );
+  }
+
+  String _formatDepartureDate(String dateStr) {
+    if (dateStr.isEmpty) return 'TBA';
+    try {
+      final dt = DateTime.parse(dateStr);
+      final months = [
+        'JAN',
+        'FEB',
+        'MAR',
+        'APR',
+        'MEI',
+        'JUN',
+        'JUL',
+        'AGU',
+        'SEP',
+        'OKT',
+        'NOV',
+        'DES',
+      ];
+      return "${months[dt.month - 1]} ${dt.day.toString().padLeft(2, '0')}";
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
+  String _formatDurationDays(String startStr, String endStr) {
+    try {
+      final start = DateTime.parse(startStr);
+      final end = DateTime.parse(endStr);
+      final days = end.difference(start).inDays + 1;
+      return "$days ${days > 1 ? 'DAYS' : 'DAY'}";
+    } catch (_) {
+      return '1 DAY';
+    }
+  }
+
+  Widget _buildUpcomingTripSection(
+    Color textNavy,
+    Color primaryBlue,
+    Color bgCloud,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Upcoming Trip",
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                  color: textNavy,
+                ),
+              ),
+              if (_upcomingTrip != null)
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => HalamanTripDetail(
+                          user: widget.user,
+                          trip: _upcomingTrip,
+                        ),
+                      ),
+                    ).then((_) => _loadUpcomingTrip());
+                  },
+                  child: Text(
+                    "Lihat Detail",
+                    style: TextStyle(
+                      color: primaryBlue,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          if (_isLoadingTrip)
+            Container(
+              height: 140,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: const Center(
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+            )
+          else if (_upcomingTrip == null)
+            // Empty Trip State (No fake / dummy trips!)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: primaryBlue.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.luggage_outlined,
+                      color: primaryBlue,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    "Belum Ada Rencana Perjalanan",
+                    style: TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: textNavy,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Rencanakan liburan impianmu dengan mudah dan cepat menggunakan AI Planner.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              HalamanAiPlanner(user: widget.user),
+                        ),
+                      ).then((_) => _loadUpcomingTrip());
+                    },
+                    icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+                    label: const Text("Mulai Rencana Baru"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryBlue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 2,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            // Boarding Pass Ticket for Real Upcoming Trip
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => HalamanTripDetail(
+                      user: widget.user,
+                      trip: _upcomingTrip,
+                      title: _upcomingTrip!.tripName,
+                      dateRange:
+                          '${_upcomingTrip!.startDate} - ${_upcomingTrip!.endDate}',
+                      status: _upcomingTrip!.status,
+                      imageUrl:
+                          _upcomingTrip!.imageUrl ??
+                          'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop',
+                    ),
+                  ),
+                ).then((_) => _loadUpcomingTrip());
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 15,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Ticket Top Stub
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "DEPARTURE",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey.shade500,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _formatDepartureDate(_upcomingTrip!.startDate),
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: textNavy,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          // Orbit Ring Motif Indicator
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: primaryBlue.withValues(alpha: 0.2),
+                                width: 2,
+                              ),
+                            ),
+                            child: Center(
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF2563EB),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.flight_takeoff_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                "DURATION",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey.shade500,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _formatDurationDays(
+                                  _upcomingTrip!.startDate,
+                                  _upcomingTrip!.endDate,
+                                ),
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: textNavy,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Perforation Dashed Line
+                    Row(
+                      children: [
+                        Container(
+                          width: 12,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: bgCloud,
+                            borderRadius: const BorderRadius.only(
+                              topRight: Radius.circular(12),
+                              bottomRight: Radius.circular(12),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return Flex(
+                                direction: Axis.horizontal,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: List.generate(
+                                  (constraints.constrainWidth() / 10).floor(),
+                                  (_) => SizedBox(
+                                    width: 5,
+                                    height: 1.5,
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade300,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        Container(
+                          width: 12,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: bgCloud,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              bottomLeft: Radius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Ticket Bottom Image & Info
+                    Container(
+                      height: 170,
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(24),
+                          bottomRight: Radius.circular(24),
+                        ),
+                        image: DecorationImage(
+                          image: NetworkImage(
+                            _upcomingTrip!.imageUrl ??
+                                'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop',
+                          ),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(24),
+                            bottomRight: Radius.circular(24),
+                          ),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.8),
+                            ],
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: primaryBlue.withValues(alpha: 0.9),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                _upcomingTrip!.status.toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              _upcomingTrip!.tripName,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on_rounded,
+                                  color: Colors.white70,
+                                  size: 14,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _upcomingTrip!.destinationLocation ??
+                                      _upcomingTrip!.destinationName ??
+                                      'Indonesia',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:project_tride/Constants/app_colors.dart';
 import 'package:project_tride/Models/user_model.dart';
 import '../../Widgets/custom_floating_nav_bar.dart';
-import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
-import '../halaman budget/halaman_budget.dart';
-import '../halaman explore/halaman_jelajah.dart';
-import '../halaman profile/halaman_profil.dart';
-import 'halaman_beranda.dart';
+import '../halaman_utama.dart';
 import 'halaman_destination_detail.dart';
 
 class HalamanDestinationSearch extends StatefulWidget {
@@ -96,48 +92,29 @@ class _HalamanDestinationSearchState extends State<HalamanDestinationSearch> {
   void _onNavTapped(int index) {
     if (index == _currentNavIndex) return;
 
-    switch (index) {
-      case 0:
+    if (index == 0) {
+      if (Navigator.canPop(context)) {
+        Navigator.popUntil(context, (route) => route.isFirst);
+      } else {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HalamanBeranda(user: widget.user),
+            builder: (context) =>
+                HalamanUtama(user: widget.user, initialTab: 0),
           ),
         );
-        break;
-      case 1:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanJelajah(user: widget.user),
-          ),
-        );
-        break;
-      case 2:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanAiPlanner(user: widget.user),
-          ),
-        );
-        break;
-      case 3:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanBudget(user: widget.user),
-          ),
-        );
-        break;
-      case 4:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanProfil(user: widget.user),
-          ),
-        );
-        break;
+      }
+      return;
     }
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            HalamanUtama(user: widget.user, initialTab: index),
+      ),
+      (route) => false,
+    );
   }
 
   @override
@@ -175,7 +152,7 @@ class _HalamanDestinationSearchState extends State<HalamanDestinationSearch> {
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                HalamanBeranda(user: widget.user),
+                                HalamanUtama(user: widget.user, initialTab: 0),
                           ),
                         );
                       }

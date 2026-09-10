@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "surface-container-lowest": "#ffffff", "inverse-surface": "#2e3039", "error": "#ba1a1a", "tertiary-fixed": "#ffdbcd", "on-tertiary-fixed": "#360f00", "sand-beige": "#EDE0CB", "on-tertiary": "#ffffff", "on-secondary-fixed": "#001e2c", "tertiary-fixed-dim": "#ffb596", "natural-green": "#3E9C5D", "on-tertiary-container": "#ffede6", "tertiary-container": "#bc4800", "primary": "#004ac6", "error-container": "#ffdad6", "primary-container": "#2563eb", "outline": "#737686", "background-cloud": "#F8FAFC", "surface-variant": "#e1e2ed", "secondary": "#00668a", "on-surface-variant": "#434655", "on-secondary-fixed-variant": "#004c69", "on-primary": "#ffffff", "tertiary": "#943700", "on-error-container": "#93000a", "surface-container-low": "#f3f3fe", "background": "#faf8ff", "on-primary-container": "#eeefff", "surface-tint": "#0053db", "surface": "#faf8ff", "warm-yellow": "#FDB813", "on-error": "#ffffff", "sunset-orange": "#FB7A3C", "text-navy": "#0F172A", "surface-container-high": "#e7e7f3", "on-surface": "#191b23", "outline-variant": "#c3c6d7", "on-primary-fixed": "#00174b", "surface-container": "#ededf9", "text-slate": "#64748B", "on-background": "#191b23", "secondary-container": "#40c2fd", "on-secondary-container": "#004d6a", "inverse-primary": "#b4c5ff", "on-secondary": "#ffffff", "on-primary-fixed-variant": "#003ea8", "surface-container-highest": "#e1e2ed", "primary-fixed-dim": "#b4c5ff", "secondary-fixed-dim": "#7bd0ff", "surface-bright": "#faf8ff", "inverse-on-surface": "#f0f0fb", "primary-fixed": "#dbe1ff", "surface-dim": "#d9d9e5", "secondary-fixed": "#c4e7ff", "on-tertiary-fixed-variant": "#7d2d00" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "edge-margin-desktop": "48px", "section-gap": "40px", "gutter": "16px", "edge-margin-mobile": "20px" }, fontFamily: { "data-tabular": ["Inter"], "body-lg": ["Inter"], "body-md": ["Inter"], "display-hero": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-caps": ["Inter"] }, fontSize: { "data-tabular": ["15px", { "lineHeight": "1.4", "fontWeight": "500" }], "body-lg": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }], "body-md": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }], "display-hero": ["36px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }], "headline-md": ["20px", { "lineHeight": "1.4", "fontWeight": "600" }], "headline-lg": ["28px", { "lineHeight": "1.3", "fontWeight": "600" }], "label-caps": ["12px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }] } } } };</script><style>@layer base{html,body{margin:0;padding:0;min-height:100%;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style></head><body class="bg-background-cloud font-body-md text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-20 px-edge-margin-mobile flex flex-col justify-center"><div class="flex items-center justify-between"><div class="flex items-center gap-3"><button aria-label="Go back" class="w-11 h-11 -ml-2 rounded-full flex items-center justify-center text-text-navy active:bg-surface-container transition-colors" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><div class="flex flex-col"><span class="font-label-caps text-label-caps uppercase tracking-wider text-text-slate">AI Itinerary Wizard</span><h1 class="font-headline-md text-headline-md text-text-navy line-clamp-1">Destination &amp; Duration</h1></div></div><div class="flex items-center gap-2"><img alt="Profile" class="w-8 h-8 rounded-full object-cover shadow-[0_1px_4px_rgba(0,0,0,0.08)]" src="https://lh3.googleusercontent.com/aida/AEtjO1X5Z3nl8HAJTlvCZ1Wtr6ZvScnXH6atEBcqkdA1gQyRmtUczkMEqn5AafTjoi4JKI3bNvQapUYAlUKK-mdqp9Znd27QlNGVaH11qLOfWk9rgjx8AKiwcmdKOKFLY_9ioqJXNMlogTvaDKzY7_2N8zArjy4vp_b14eAskJ2XOOhCZHqifFQZVjYdPe-rXsJHWnAzKSdkNNGsvBykF7fYPA3dxwTuU4VgB0UFV6Z5t5OBvmBUIUmd-ki4zi4ZScjOHOKhVhNZjclNRw"/></div></div><div class="w-full grid grid-cols-4 gap-1.5 mt-2.5"><div class="h-1 rounded-full bg-primary transition-all duration-300"></div><div class="h-1 rounded-full bg-surface-container-high transition-all duration-300"></div><div class="h-1 rounded-full bg-surface-container-high transition-all duration-300"></div><div class="h-1 rounded-full bg-surface-container-high transition-all duration-300"></div></div></div></header><main class="flex-1 flex flex-col w-full px-edge-margin-mobile pt-20 bg-background-cloud pb-safe"><div class="flex flex-col w-full pb-28">
+<!-- Intro & Welcome Banner -->
+<section class="mb-6 pt-1">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-fixed text-on-primary-fixed mb-2.5">
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">explore</span>
+<span class="font-label-caps text-label-caps uppercase font-semibold">Langkah 1 dari 4</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-text-navy tracking-tight">Mau liburan ke mana?</h2>
+<p class="font-body-md text-text-slate mt-1">Ceritakan rencanamu, Tride AI akan meracik itinerari impianmu detik ini juga.</p>
+</section>
+<!-- Destination Section -->
+<section class="space-y-3 mb-7">
+<label class="font-headline-md text-headline-md text-text-navy block">Tujuan Utama</label>
+<!-- Search Input Box -->
+<div class="relative bg-surface-container-lowest rounded-xl shadow-sm p-1.5 flex items-center transition-all focus-within:shadow-md">
+<div class="w-11 h-11 rounded-lg bg-surface-container flex items-center justify-center text-primary shrink-0 ml-1">
+<span class="material-symbols-outlined text-[24px]">location_on</span>
+</div>
+<input class="w-full bg-transparent px-3.5 py-2.5 text-text-navy font-body-lg text-body-lg focus:outline-none placeholder:text-text-slate/60 font-medium" id="destInput" placeholder="Cari kota, pulau, atau destinasi..." type="text" value="Labuan Bajo, NTT"/>
+<button aria-label="Hapus teks" class="w-8 h-8 rounded-full flex items-center justify-center text-text-slate active:bg-surface-container shrink-0 mr-1" id="clearDestBtn" type="button">
+<span class="material-symbols-outlined text-[18px]">cancel</span>
+</button>
+</div>
+<!-- AI Recommendation Chip -->
+<button class="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-primary-fixed/60 active:bg-primary-fixed text-primary transition-colors text-left" id="recommendationChip" type="button">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="font-body-md text-body-md font-semibold">Belum tahu tujuannya? Kasih rekomendasi</span>
+</button>
+<!-- Destination Visual Snippet (Editorial Delight) -->
+<div class="relative overflow-hidden rounded-xl bg-surface-container-low shadow-sm mt-3 h-28 flex items-center">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="Stunning cinematic drone shot of turquoise waters and lush emerald green islands in Padar Island Labuan Bajo Indonesia during golden hour with warm sunlight shimmering on calm ocean waves and soft cloud sky." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBXjcVHUWDSt2j14KrrgECfnJjzd4dPaGJPmOZTs8LXJGEbpKlQZhEVmqWDNjZSRA7AZHD5DgmIrKgqq-HYPP8xoxx9In7gVdkNWiaWllkmrencZHe1Q9ZUXIhSwltM-qLxE-JIMiN7llk8wNm5f0_30oIJNdtcoKKNuJ33VfM_2UR3nivRmbYPwAvfwlTZIOdkEdLBJAYdi5TiaEjE66SaqWMksZdNRcJ80VMkSZqS-ZJQOoMpSw0r')">
+</div>
+<div class="absolute inset-0 bg-gradient-to-r from-text-navy/85 via-text-navy/50 to-transparent"></div>
+<div class="relative z-10 px-4 text-on-primary">
+<div class="flex items-center gap-1.5 mb-1">
+<span class="material-symbols-outlined text-warm-yellow text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-caps text-label-caps uppercase text-warm-yellow tracking-wider">Destinasi Populer</span>
+</div>
+<p class="font-headline-md text-headline-md text-on-primary font-bold leading-tight">Kepulauan Komodo &amp; Padar</p>
+<p class="font-body-md text-body-md text-on-primary/80">35+ spot eksotis siap dieksplorasi</p>
+</div>
+</div>
+</section>
+<!-- Dates & Duration Section -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-4.5 mb-7 space-y-4">
+<!-- Header with Flexible Switch -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">calendar_month</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-text-navy">Waktu Perjalanan</h3>
+<p class="font-body-md text-body-md text-text-slate">Atur tanggal atau durasi</p>
+</div>
+</div>
+<!-- Toggle Switch for Flexible Dates -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" id="flexibleToggle" type="checkbox"/>
+<div class="w-12 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-container-lowest after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Status label -->
+<div class="flex items-center justify-between px-3 py-2 rounded-lg bg-surface-container-low text-primary">
+<span class="font-body-md text-body-md font-medium flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">tune</span>
+        Tanggal masih fleksibel
+      </span>
+<span class="font-label-caps text-label-caps uppercase tracking-wide px-2 py-0.5 rounded-full bg-surface-container-lowest font-bold">Aktif</span>
+</div>
+<!-- Duration Quick-Select Chips -->
+<div class="pt-1">
+<span class="font-label-caps text-label-caps uppercase text-text-slate tracking-wider block mb-2 font-semibold">Berapa lama liburannya?</span>
+<div class="grid grid-cols-4 gap-2">
+<button class="duration-chip py-2.5 px-2 rounded-lg bg-surface-container text-text-navy font-body-md text-body-md font-medium text-center active:scale-95 transition-all" type="button">
+          3 hari
+        </button>
+<button class="duration-chip py-2.5 px-2 rounded-lg bg-primary text-on-primary font-body-md text-body-md font-semibold text-center shadow-sm active:scale-95 transition-all" type="button">
+          5 hari
+        </button>
+<button class="duration-chip py-2.5 px-2 rounded-lg bg-surface-container text-text-navy font-body-md text-body-md font-medium text-center active:scale-95 transition-all" type="button">
+          7 hari
+        </button>
+<button class="duration-chip py-2.5 px-2 rounded-lg bg-surface-container text-text-navy font-body-md text-body-md font-medium text-center active:scale-95 transition-all" type="button">
+          10+ hari
+        </button>
+</div>
+</div>
+<!-- Side-by-side Date Pickers -->
+<div class="grid grid-cols-2 gap-2.5 pt-1">
+<!-- Berangkat -->
+<div class="p-3 rounded-lg bg-surface-container-low active:bg-surface-container transition-colors cursor-pointer">
+<div class="flex items-center gap-1.5 text-text-slate mb-1">
+<span class="material-symbols-outlined text-[16px]">flight_takeoff</span>
+<span class="font-label-caps text-label-caps uppercase">Berangkat</span>
+</div>
+<p class="font-data-tabular text-data-tabular font-bold text-text-navy">15 Okt 2025</p>
+<span class="font-label-caps text-label-caps text-text-slate">Rabu</span>
+</div>
+<!-- Pulang -->
+<div class="p-3 rounded-lg bg-surface-container-low active:bg-surface-container transition-colors cursor-pointer">
+<div class="flex items-center gap-1.5 text-text-slate mb-1">
+<span class="material-symbols-outlined text-[16px]">flight_land</span>
+<span class="font-label-caps text-label-caps uppercase">Pulang</span>
+</div>
+<p class="font-data-tabular text-data-tabular font-bold text-text-navy">20 Okt 2025</p>
+<span class="font-label-caps text-label-caps text-text-slate">Senin</span>
+</div>
+</div>
+</section>
+<!-- Companions Section: Siapa yang ikut? -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-4.5 mb-6 space-y-4">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="font-headline-md text-headline-md text-text-navy">Siapa yang ikut?</h3>
+<p class="font-body-md text-body-md text-text-slate">Kami sesuaikan ritme dan rekomendasi spot</p>
+</div>
+<span class="material-symbols-outlined text-text-slate text-[22px]">group</span>
+</div>
+<!-- 4 Pill Companion Selector -->
+<div class="grid grid-cols-4 gap-2">
+<!-- Solo -->
+<button class="companion-btn flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface-container-low text-text-slate transition-all active:scale-95" type="button">
+<span class="material-symbols-outlined text-[22px] mb-1">person</span>
+<span class="font-body-md text-body-md font-medium">Solo</span>
+</button>
+<!-- Pasangan -->
+<button class="companion-btn flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface-container-low text-text-slate transition-all active:scale-95" type="button">
+<span class="material-symbols-outlined text-[22px] mb-1">favorite</span>
+<span class="font-body-md text-body-md font-medium">Pasangan</span>
+</button>
+<!-- Keluarga (ACTIVE) -->
+<button class="companion-btn flex flex-col items-center justify-center p-2.5 rounded-xl bg-primary text-on-primary shadow-sm transition-all active:scale-95" type="button">
+<span class="material-symbols-outlined text-[22px] mb-1" style="font-variation-settings: 'FILL' 1;">family_restroom</span>
+<span class="font-body-md text-body-md font-bold">Keluarga</span>
+</button>
+<!-- Grup -->
+<button class="companion-btn flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface-container-low text-text-slate transition-all active:scale-95" type="button">
+<span class="material-symbols-outlined text-[22px] mb-1">groups</span>
+<span class="font-body-md text-body-md font-medium">Grup</span>
+</button>
+</div>
+<!-- Dynamic Sub-Options for Keluarga (Revealed state) -->
+<div class="p-3.5 rounded-xl bg-surface-container-low/70 space-y-4 pt-4">
+<!-- People Stepper -->
+<div class="flex items-center justify-between">
+<div>
+<span class="font-body-md text-body-md font-semibold text-text-navy block">Berapa orang totalnya?</span>
+<span class="font-label-caps text-label-caps text-text-slate">Dewasa, anak, atau bayi</span>
+</div>
+<div class="flex items-center gap-3 bg-surface-container-lowest px-2.5 py-1.5 rounded-full shadow-sm">
+<button aria-label="Kurangi jumlah orang" class="w-7 h-7 rounded-full bg-surface-container flex items-center justify-center text-text-navy active:scale-90 transition-transform" id="decCountBtn" type="button">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="font-data-tabular text-data-tabular font-bold text-text-navy min-w-[56px] text-center" id="peopleCount">4 Orang</span>
+<button aria-label="Tambah jumlah orang" class="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center active:scale-90 transition-transform" id="incCountBtn" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+<!-- Specific demographic toggles -->
+<div class="space-y-2.5 pt-1">
+<!-- Ada Anak-Anak (ON) -->
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-lowest shadow-sm">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+<span class="material-symbols-outlined text-[18px]">child_care</span>
+</div>
+<div>
+<p class="font-body-md text-body-md font-semibold text-text-navy">Ada anak-anak?</p>
+<p class="font-label-caps text-label-caps text-text-slate">&lt; 12 tahun (prioritaskan aktivitas aman)</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-container-lowest after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Ada Lansia (OFF) -->
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-lowest shadow-sm">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-text-slate">
+<span class="material-symbols-outlined text-[18px]">elderly</span>
+</div>
+<div>
+<p class="font-body-md text-body-md font-semibold text-text-navy">Ada lansia?</p>
+<p class="font-label-caps text-label-caps text-text-slate">&gt; 60 tahun (jalur landai tanpa trekking terjal)</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-container-lowest after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</div>
+</section>
+<!-- Sticky Bottom CTA Action -->
+<div class="fixed bottom-0 inset-x-0 bg-surface-container-lowest/95 backdrop-blur-md p-4 px-edge-margin-mobile shadow-[0_-4px_20px_rgba(0,0,0,0.06)] z-40 pb-safe">
+<button class="w-full py-4 px-6 rounded-full bg-primary text-on-primary font-headline-md text-headline-md font-bold flex items-center justify-center gap-2 shadow-md active:scale-[0.98] transition-all" id="submitStepBtn" type="button">
+<span>Lanjut ke Preferensi</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<script>
+  // Simple micro-interactions for Step 1
+  (function() {
+    let count = 4;
+    const countDisplay = document.getElementById('peopleCount');
+    const decBtn = document.getElementById('decCountBtn');
+    const incBtn = document.getElementById('incCountBtn');
+
+    if (decBtn && incBtn && countDisplay) {
+      decBtn.addEventListener('click', () => {
+        if (count > 1) {
+          count--;
+          countDisplay.textContent = count + ' Orang';
+        }
+      });
+
+      incBtn.addEventListener('click', () => {
+        if (count < 20) {
+          count++;
+          countDisplay.textContent = count + ' Orang';
+        }
+      });
+    }
+
+    // Quick chip selection for duration
+    const chips = document.querySelectorAll('.duration-chip');
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        chips.forEach(c => {
+          c.className = 'duration-chip py-2.5 px-2 rounded-lg bg-surface-container text-text-navy font-body-md text-body-md font-medium text-center active:scale-95 transition-all';
+        });
+        chip.className = 'duration-chip py-2.5 px-2 rounded-lg bg-primary text-on-primary font-body-md text-body-md font-semibold text-center shadow-sm active:scale-95 transition-all';
+      });
+    });
+
+    // Clear destination
+    const clearBtn = document.getElementById('clearDestBtn');
+    const destInput = document.getElementById('destInput');
+    if (clearBtn && destInput) {
+      clearBtn.addEventListener('click', () => {
+        destInput.value = '';
+        destInput.focus();
+      });
+    }
+  })();
+</script></main></body></html>

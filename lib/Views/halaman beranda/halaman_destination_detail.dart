@@ -5,11 +5,13 @@ import 'package:project_tride/Database/attraction_model.dart';
 import 'package:project_tride/Database/destination_model.dart';
 import 'package:project_tride/Database/local_food_model.dart';
 import 'package:project_tride/Models/user_model.dart';
+import 'package:project_tride/Models/weather_model.dart';
 import 'package:project_tride/Services/destination_service.dart';
 import 'package:project_tride/Services/saved_places_service.dart';
+import 'package:project_tride/Services/weather_service.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman profile/halaman_saved_places.dart';
-import 'halaman_beranda.dart';
+import '../halaman_utama.dart';
 
 class HalamanDestinationDetail extends StatefulWidget {
   final UserModel? user;
@@ -63,6 +65,11 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
   List<AccommodationModel> _accommodations = [];
   List<LocalFoodModel> _localFoods = [];
 
+  // Weather state (Real-time Open-Meteo)
+  WeatherModel? _weatherData;
+  bool _isLoadingWeather = true;
+  bool _hasWeatherError = false;
+
   // Design Tokens & Colors matching AppColors
   static const Color primaryBlue = AppColors.primaryDeep;
   static const Color primaryContainer = AppColors.primary;
@@ -82,6 +89,10 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
     _loadedDestination = widget.destination;
     _checkFavoriteStatus();
     _fetchTravelData();
+    if (_loadedDestination?.latitude != null &&
+        _loadedDestination?.longitude != null) {
+      _fetchWeatherForDestination(_loadedDestination);
+    }
   }
 
   @override
@@ -93,9 +104,16 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
       setState(() {
         _isLoadingTravelData = true;
         _loadedDestination = widget.destination;
+        _weatherData = null;
+        _isLoadingWeather = true;
+        _hasWeatherError = false;
       });
       _checkFavoriteStatus();
       _fetchTravelData();
+      if (_loadedDestination?.latitude != null &&
+          _loadedDestination?.longitude != null) {
+        _fetchWeatherForDestination(_loadedDestination);
+      }
     }
   }
 
@@ -122,6 +140,53 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
     } catch (_) {}
   }
 
+  Future<void> _fetchWeatherForDestination(DestinationModel? dest) async {
+    final lat = dest?.latitude;
+    final lng = dest?.longitude;
+
+    if (lat == null || lng == null) {
+      if (mounted) {
+        setState(() {
+          _weatherData = null;
+          _isLoadingWeather = false;
+          _hasWeatherError = true;
+        });
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoadingWeather = true;
+        _hasWeatherError = false;
+      });
+    }
+
+    try {
+      final weather = await WeatherService.instance.getCurrentWeather(
+        latitude: lat,
+        longitude: lng,
+      );
+
+      if (mounted) {
+        setState(() {
+          _weatherData = weather;
+          _isLoadingWeather = false;
+          _hasWeatherError = weather == null;
+        });
+      }
+    } catch (e) {
+      debugPrint('[HalamanDestinationDetail] Error fetching weather: $e');
+      if (mounted) {
+        setState(() {
+          _weatherData = null;
+          _isLoadingWeather = false;
+          _hasWeatherError = true;
+        });
+      }
+    }
+  }
+
   Future<void> _fetchTravelData() async {
     int? destId = _getDestinationId();
 
@@ -145,6 +210,13 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
         setState(() {
           _isLoadingTravelData = false;
         });
+        if (_loadedDestination?.latitude != null &&
+            _loadedDestination?.longitude != null) {
+          _fetchWeatherForDestination(_loadedDestination);
+        } else {
+          _isLoadingWeather = false;
+          _hasWeatherError = true;
+        }
       }
       return;
     }
@@ -171,6 +243,10 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
           '[HalamanDestinationDetail] Destination ID $destId (${_getEffectiveTitle()}): '
           '${_attractions.length} attractions, ${_accommodations.length} accommodations, ${_localFoods.length} local foods loaded.',
         );
+
+        if (_weatherData == null || _hasWeatherError) {
+          _fetchWeatherForDestination(_loadedDestination);
+        }
       }
     } catch (e) {
       debugPrint('[HalamanDestinationDetail] Error fetching travel data: $e');
@@ -178,6 +254,9 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
         setState(() {
           _isLoadingTravelData = false;
         });
+        if (_weatherData == null || _hasWeatherError) {
+          _fetchWeatherForDestination(_loadedDestination);
+        }
       }
     }
   }
@@ -259,7 +338,26 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
                 // 2. Metrics Quick Info Bar
                 _buildMetricCards(),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 4),
+
+                // Subtle Weather Attribution
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      'Weather data by Open-Meteo',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: textSlate,
+                        fontFamily: 'Inter',
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
 
                 // Content Padding Body
                 Padding(
@@ -383,7 +481,7 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                                  HalamanBeranda(user: widget.user),
+                                  HalamanUtama(user: widget.user, initialTab: 0),
                             ),
                           );
                         }
@@ -579,6 +677,24 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
     final rating = _getEffectiveRating();
     final price = _getEffectivePrice();
 
+    final IconData weatherIcon;
+    final String weatherValue;
+    final String weatherLabel;
+
+    if (_isLoadingWeather) {
+      weatherIcon = Icons.wb_cloudy_outlined;
+      weatherValue = '--°C';
+      weatherLabel = 'Memuat cuaca...';
+    } else if (_hasWeatherError || _weatherData == null) {
+      weatherIcon = Icons.cloud_off_outlined;
+      weatherValue = '--°C';
+      weatherLabel = 'Cuaca tidak tersedia';
+    } else {
+      weatherIcon = _weatherData!.iconData;
+      weatherValue = '${_weatherData!.temperature.round()}°C';
+      weatherLabel = _weatherData!.condition;
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: SingleChildScrollView(
@@ -596,13 +712,13 @@ class _HalamanDestinationDetailState extends State<HalamanDestinationDetail> {
             ),
             const SizedBox(width: 12),
 
-            // Cuaca Card
+            // Cuaca Card (Dynamic Open-Meteo)
             _buildMetricCardItem(
-              icon: Icons.wb_cloudy_outlined,
+              icon: weatherIcon,
               iconBgColor: secondaryContainer.withValues(alpha: 0.2),
               iconColor: secondaryColor,
-              value: widget.weather,
-              label: 'Cuaca',
+              value: weatherValue,
+              label: weatherLabel,
             ),
             const SizedBox(width: 12),
 

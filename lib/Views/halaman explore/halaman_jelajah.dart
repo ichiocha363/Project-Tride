@@ -16,8 +16,14 @@ import '../halaman profile/halaman_saved_places.dart';
 class HalamanJelajah extends StatefulWidget {
   final UserModel? user;
   final bool isEmbeddedInShell;
+  final ValueChanged<int>? onSwitchTab;
 
-  const HalamanJelajah({super.key, this.user, this.isEmbeddedInShell = false});
+  const HalamanJelajah({
+    super.key,
+    this.user,
+    this.isEmbeddedInShell = false,
+    this.onSwitchTab,
+  });
 
   @override
   State<HalamanJelajah> createState() => _HalamanJelajahState();
@@ -207,12 +213,17 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                 padding: const EdgeInsets.only(right: 20),
                 child: GestureDetector(
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => HalamanProfil(user: widget.user),
-                      ),
-                    );
+                    if (widget.onSwitchTab != null) {
+                      widget.onSwitchTab!(4);
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              HalamanProfil(user: widget.user),
+                        ),
+                      );
+                    }
                   },
                   child: Container(
                     width: 38,
@@ -612,8 +623,8 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                                           child: GestureDetector(
                                             onTap: () async {
                                               if (itemId == null) return;
-                                              final isCurrentlyFav =
-                                                  _favorites.contains(itemId);
+                                              final isCurrentlyFav = _favorites
+                                                  .contains(itemId);
                                               final messenger =
                                                   ScaffoldMessenger.of(context);
 
@@ -633,9 +644,10 @@ class _HalamanJelajahState extends State<HalamanJelajah> {
                                                         content: Text(
                                                           '${item.name} dihapus dari Saved Places',
                                                         ),
-                                                        duration: const Duration(
-                                                          seconds: 1,
-                                                        ),
+                                                        duration:
+                                                            const Duration(
+                                                              seconds: 1,
+                                                            ),
                                                         behavior:
                                                             SnackBarBehavior
                                                                 .floating,

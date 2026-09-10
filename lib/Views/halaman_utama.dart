@@ -49,29 +49,57 @@ class _HalamanUtamaState extends State<HalamanUtama> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> pages = [
-      HalamanBeranda(user: widget.user, isEmbeddedInShell: true),
-      HalamanJelajah(user: widget.user, isEmbeddedInShell: true),
-      HalamanAiPlanner(user: widget.user, isEmbeddedInShell: true),
-      HalamanBudget(user: widget.user, isEmbeddedInShell: true),
-      HalamanProfil(user: widget.user, isEmbeddedInShell: true),
+      HalamanBeranda(
+        user: widget.user,
+        isEmbeddedInShell: true,
+        onSwitchTab: _onTabSelected,
+      ),
+      HalamanJelajah(
+        user: widget.user,
+        isEmbeddedInShell: true,
+        onSwitchTab: _onTabSelected,
+      ),
+      HalamanAiPlanner(
+        user: widget.user,
+        isEmbeddedInShell: true,
+        onSwitchTab: _onTabSelected,
+      ),
+      HalamanBudget(
+        user: widget.user,
+        isEmbeddedInShell: true,
+        onSwitchTab: _onTabSelected,
+      ),
+      HalamanProfil(
+        user: widget.user,
+        isEmbeddedInShell: true,
+        onSwitchTab: _onTabSelected,
+      ),
     ];
 
-    return Scaffold(
-      extendBody: true,
-      body: PageView(
-        controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(),
-        onPageChanged: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        children: pages,
-      ),
-      bottomNavigationBar: CustomFloatingNavBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onTabSelected,
-        pageController: _pageController,
+    return PopScope(
+      canPop: _selectedIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _selectedIndex != 0) {
+          _onTabSelected(0);
+        }
+      },
+      child: Scaffold(
+        extendBody: true,
+        body: PageView(
+          controller: _pageController,
+          physics: const NeverScrollableScrollPhysics(),
+          onPageChanged: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+          },
+          children: pages,
+        ),
+        bottomNavigationBar: CustomFloatingNavBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: _onTabSelected,
+          pageController: _pageController,
+        ),
       ),
     );
   }

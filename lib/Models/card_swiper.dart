@@ -11,14 +11,14 @@ class CardSwiper extends StatefulWidget {
 class _CardSwiperState extends State<CardSwiper> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: SwiperTempat());
+    return Scaffold(body: _buildSwiperTempat());
   }
 
-  Swiper SwiperTempat() {
+  Swiper _buildSwiperTempat() {
     return Swiper(
       itemBuilder: (BuildContext context, int index) {
         final gambar = [
-          Container(
+          SizedBox(
             width: double.infinity,
             height: 200,
             child: Column(
@@ -27,7 +27,7 @@ class _CardSwiperState extends State<CardSwiper> {
                 Stack(
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.vertical(
+                      borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(20),
                       ),
                       child: Image.asset(
@@ -64,7 +64,7 @@ class _CardSwiperState extends State<CardSwiper> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
+                          const Text(
                             'Jogja, Indonesia',
                             style: TextStyle(
                               fontSize: 18,
@@ -72,7 +72,7 @@ class _CardSwiperState extends State<CardSwiper> {
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 4,
                             ),
@@ -80,7 +80,7 @@ class _CardSwiperState extends State<CardSwiper> {
                               color: Colors.lightBlue,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Row(
+                            child: const Row(
                               children: [
                                 Icon(Icons.star, color: Colors.white, size: 16),
                                 SizedBox(width: 4),
@@ -96,15 +96,15 @@ class _CardSwiperState extends State<CardSwiper> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.location_on_outlined,
                             size: 16,
                             color: Colors.grey,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
                             'Asia Tenggara',
                             style: TextStyle(
@@ -114,7 +114,7 @@ class _CardSwiperState extends State<CardSwiper> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Text(
                         'Mulai Rp 5jt',
                         style: TextStyle(
@@ -130,7 +130,7 @@ class _CardSwiperState extends State<CardSwiper> {
             ),
           ),
 
-          Container(
+          SizedBox(
             width: double.infinity,
             height: 200,
             child: Column(
@@ -139,7 +139,7 @@ class _CardSwiperState extends State<CardSwiper> {
                 Stack(
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.vertical(
+                      borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(20),
                       ),
                       child: Image.asset(
@@ -176,7 +176,7 @@ class _CardSwiperState extends State<CardSwiper> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
+                          const Text(
                             'Jogja, Indonesia',
                             style: TextStyle(
                               fontSize: 18,
@@ -184,7 +184,7 @@ class _CardSwiperState extends State<CardSwiper> {
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 4,
                             ),
@@ -192,7 +192,7 @@ class _CardSwiperState extends State<CardSwiper> {
                               color: Colors.lightBlue,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Row(
+                            child: const Row(
                               children: [
                                 Icon(Icons.star, color: Colors.white, size: 16),
                                 SizedBox(width: 4),
@@ -208,15 +208,15 @@ class _CardSwiperState extends State<CardSwiper> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.location_on_outlined,
                             size: 16,
                             color: Colors.grey,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
                             'Asia Tenggara',
                             style: TextStyle(
@@ -226,7 +226,7 @@ class _CardSwiperState extends State<CardSwiper> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Text(
                         'Mulai Rp 5jt',
                         style: TextStyle(
@@ -242,7 +242,7 @@ class _CardSwiperState extends State<CardSwiper> {
             ),
           ),
 
-          Container(
+          SizedBox(
             width: double.infinity,
             height: 200,
             child: Column(
@@ -251,7 +251,7 @@ class _CardSwiperState extends State<CardSwiper> {
                 Stack(
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.vertical(
+                      borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(20),
                       ),
                       child: Image.asset(
@@ -288,7 +288,7 @@ class _CardSwiperState extends State<CardSwiper> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
+                          const Text(
                             'Jogja, Indonesia',
                             style: TextStyle(
                               fontSize: 18,
@@ -296,7 +296,7 @@ class _CardSwiperState extends State<CardSwiper> {
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 4,
                             ),
@@ -304,7 +304,7 @@ class _CardSwiperState extends State<CardSwiper> {
                               color: Colors.lightBlue,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Row(
+                            child: const Row(
                               children: [
                                 Icon(Icons.star, color: Colors.white, size: 16),
                                 SizedBox(width: 4),
@@ -320,15 +320,15 @@ class _CardSwiperState extends State<CardSwiper> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.location_on_outlined,
                             size: 16,
                             color: Colors.grey,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
                             'Asia Tenggara',
                             style: TextStyle(
@@ -338,7 +338,7 @@ class _CardSwiperState extends State<CardSwiper> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Text(
                         'Mulai Rp 5jt',
                         style: TextStyle(
@@ -354,7 +354,7 @@ class _CardSwiperState extends State<CardSwiper> {
             ),
           ),
 
-          Container(
+          SizedBox(
             width: double.infinity,
             height: 200,
             child: Column(
@@ -363,7 +363,7 @@ class _CardSwiperState extends State<CardSwiper> {
                 Stack(
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.vertical(
+                      borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(20),
                       ),
                       child: Image.asset(
@@ -400,7 +400,7 @@ class _CardSwiperState extends State<CardSwiper> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
+                          const Text(
                             'Jogja, Indonesia',
                             style: TextStyle(
                               fontSize: 18,
@@ -408,7 +408,7 @@ class _CardSwiperState extends State<CardSwiper> {
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 4,
                             ),
@@ -416,7 +416,7 @@ class _CardSwiperState extends State<CardSwiper> {
                               color: Colors.lightBlue,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Row(
+                            child: const Row(
                               children: [
                                 Icon(Icons.star, color: Colors.white, size: 16),
                                 SizedBox(width: 4),
@@ -432,15 +432,15 @@ class _CardSwiperState extends State<CardSwiper> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.location_on_outlined,
                             size: 16,
                             color: Colors.grey,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
                             'Asia Tenggara',
                             style: TextStyle(
@@ -450,7 +450,7 @@ class _CardSwiperState extends State<CardSwiper> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Text(
                         'Mulai Rp 5jt',
                         style: TextStyle(
@@ -472,8 +472,8 @@ class _CardSwiperState extends State<CardSwiper> {
         );
       },
       itemCount: 4,
-      pagination: SwiperPagination(),
-      control: SwiperControl(),
+      pagination: const SwiperPagination(),
+      control: const SwiperControl(),
     );
   }
 }

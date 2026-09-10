@@ -1,5 +1,6 @@
 
 import 'package:flutter/foundation.dart';
+import 'package:project_tride/Database/destination_model.dart';
 
 /// Level estimasi budget untuk profil rekomendasi
 enum BudgetLevel {
@@ -276,3 +277,115 @@ class RecommendationProfilePresets {
     ),
   ];
 }
+
+/// Konfigurasi bobot penilaian rekomendasi destinasi
+@immutable
+class RecommendationScoringWeights {
+  final double categoryWeight; // Default: 40.0
+  final double placeTypeWeight; // Default: 25.0
+  final double regionWeight; // Default: 20.0
+  final double budgetWeight; // Default: 10.0
+  final double ratingWeight; // Default: 5.0
+
+  const RecommendationScoringWeights({
+    this.categoryWeight = 40.0,
+    this.placeTypeWeight = 25.0,
+    this.regionWeight = 20.0,
+    this.budgetWeight = 10.0,
+    this.ratingWeight = 5.0,
+  });
+
+  /// Skor total maksimum (default: 100.0)
+  double get maxTotalScore =>
+      categoryWeight +
+      placeTypeWeight +
+      regionWeight +
+      budgetWeight +
+      ratingWeight;
+
+  Map<String, dynamic> toMap() {
+    return {
+      'category_weight': categoryWeight,
+      'place_type_weight': placeTypeWeight,
+      'region_weight': regionWeight,
+      'budget_weight': budgetWeight,
+      'rating_weight': ratingWeight,
+    };
+  }
+
+  factory RecommendationScoringWeights.fromMap(Map<String, dynamic> map) {
+    return RecommendationScoringWeights(
+      categoryWeight: (map['category_weight'] as num?)?.toDouble() ?? 40.0,
+      placeTypeWeight: (map['place_type_weight'] as num?)?.toDouble() ?? 25.0,
+      regionWeight: (map['region_weight'] as num?)?.toDouble() ?? 20.0,
+      budgetWeight: (map['budget_weight'] as num?)?.toDouble() ?? 10.0,
+      ratingWeight: (map['rating_weight'] as num?)?.toDouble() ?? 5.0,
+    );
+  }
+}
+
+/// Rincian penilaian rekomendasi destinasi untuk transparansi & debugging
+@immutable
+class ScoreBreakdown {
+  final double categoryScore;
+  final double placeTypeScore;
+  final double regionScore;
+  final double budgetScore;
+  final double ratingScore;
+  final double totalScore;
+  final String? resolvedRegion;
+  final String? categoryMatchDetails;
+  final String? placeTypeMatchDetails;
+  final String? budgetMatchDetails;
+
+  const ScoreBreakdown({
+    required this.categoryScore,
+    required this.placeTypeScore,
+    required this.regionScore,
+    required this.budgetScore,
+    required this.ratingScore,
+    required this.totalScore,
+    this.resolvedRegion,
+    this.categoryMatchDetails,
+    this.placeTypeMatchDetails,
+    this.budgetMatchDetails,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'category_score': categoryScore,
+      'place_type_score': placeTypeScore,
+      'region_score': regionScore,
+      'budget_score': budgetScore,
+      'rating_score': ratingScore,
+      'total_score': totalScore,
+      'resolved_region': resolvedRegion,
+      'category_match_details': categoryMatchDetails,
+      'place_type_match_details': placeTypeMatchDetails,
+      'budget_match_details': budgetMatchDetails,
+    };
+  }
+
+  @override
+  String toString() {
+    return 'ScoreBreakdown(Total: $totalScore | Category: $categoryScore, PlaceType: $placeTypeScore, Region: $regionScore ($resolvedRegion), Budget: $budgetScore, Rating: $ratingScore)';
+  }
+}
+
+/// Hasil penilaian destinasi dengan skor dan breakdown lengkap
+@immutable
+class ScoredDestination {
+  final DestinationModel destination;
+  final double score;
+  final ScoreBreakdown breakdown;
+
+  const ScoredDestination({
+    required this.destination,
+    required this.score,
+    required this.breakdown,
+  });
+
+  @override
+  String toString() => 'ScoredDestination(name: ${destination.name}, score: $score)';
+}
+
