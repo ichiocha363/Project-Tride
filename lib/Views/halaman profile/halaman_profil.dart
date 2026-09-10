@@ -1,32 +1,39 @@
+import 'dart:io';
 import 'dart:math' as math;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:getwidget/getwidget.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:project_tride/Constants/app_colors.dart';
+import 'package:project_tride/Database/trip_model.dart';
+import 'package:project_tride/Database/user_model.dart' as db_user;
 import 'package:project_tride/Models/user_model.dart';
+import 'package:project_tride/Models/user_profile_model.dart';
+import 'package:project_tride/Services/auth_service.dart';
+import 'package:project_tride/Services/profile_service.dart';
+import 'package:project_tride/Services/saved_places_service.dart';
+import 'package:project_tride/Services/trip_service.dart';
 import '../../Widgets/custom_floating_nav_bar.dart';
 import '../../Widgets/preference_tile.dart';
 import '../../Widgets/profile_stat_item.dart';
-import '../../Widgets/milestone_card.dart';
-import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
-import '../halaman beranda/halaman_beranda.dart';
-import '../halaman budget/halaman_budget.dart';
-import '../halaman explore/halaman_jelajah.dart';
+import '../halaman beranda/halaman_trip_detail.dart';
 import '../halaman_login.dart';
+import '../halaman_utama.dart';
+import 'halaman_pengaturan.dart';
 import 'halaman_personal_info.dart';
+import 'halaman_personal_travel_data.dart';
 import 'halaman_saved_places.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:project_tride/Database/db_helper.dart';
-import 'package:project_tride/Database/user_model.dart' as db_user;
-import 'package:project_tride/Services/auth_service.dart';
 
 class HalamanProfil extends StatefulWidget {
   final UserModel? user;
   final bool isEmbeddedInShell;
+  final ValueChanged<int>? onSwitchTab;
 
   const HalamanProfil({
     super.key,
     this.user,
     this.isEmbeddedInShell = false,
+    this.onSwitchTab,
   });
 
   @override
@@ -35,13 +42,14 @@ class HalamanProfil extends StatefulWidget {
 
 class _HalamanProfilState extends State<HalamanProfil>
     with SingleTickerProviderStateMixin {
-  bool _darkMode = false;
-  bool _notificationsEnabled = true;
   late AnimationController _orbitController;
+  final ImagePicker _imagePicker = ImagePicker();
 
-  String? _profileName;
-  String? _profileEmail;
-  String? _profileAvatar;
+  UserProfileModel? _profile;
+  List<TripModel> _userTrips = [];
+  int _tripsCount = 0;
+  int _savedPlacesCount = 0;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -50,38 +58,254 @@ class _HalamanProfilState extends State<HalamanProfil>
       vsync: this,
       duration: const Duration(seconds: 8),
     )..repeat();
-    _loadUserData();
+    _loadProfileAndStats();
   }
 
-  Future<void> _loadUserData() async {
-    final userId = widget.user?.id ?? 1;
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _loadProfileAndStats() async {
+    try {
+      final profile = await ProfileService.instance.getUserProfile();
+      final trips = await TripService.instance.getTrips();
+      final savedCount = await SavedPlacesService.instance.getSavedPlaces();
 
-    String name = prefs.getString('user_name_$userId') ??
-        (widget.user?.nama ?? 'Zhilly Hilmansyah');
-    String email = prefs.getString('user_email_$userId') ??
-        (widget.user?.email ?? 'zhilly@example.com');
-    String? avatar = prefs.getString('user_avatar_$userId');
+      if (mounted) {
+        setState(() {
+          _profile = profile;
+          _userTrips = trips;
+          _tripsCount = trips.length;
+          _savedPlacesCount = savedCount.length;
+        });
+      }
+    } catch (_) {
+      // Graceful fallback to initial state
+    }
+  }
+
+  Future<bool> _showImagePreviewDialog(File file) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Pratinjau Foto Profil',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.primaryDeep, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: Image.file(
+                    file,
+                    width: 140,
+                    height: 140,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: AppColors.surfaceVariant,
+                        child: const Icon(
+                          Icons.broken_image_rounded,
+                          color: AppColors.textSecondary,
+                          size: 48,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Apakah Anda yakin ingin menggunakan foto ini sebagai foto profil?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          actionsAlignment: MainAxisAlignment.spaceEvenly,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text(
+                'Batal',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryDeep,
+                foregroundColor: AppColors.textWhite,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: const Text(
+                'Gunakan Foto',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    return confirmed ?? false;
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (picked == null) return; // User cancelled gallery picker
+
+      final file = File(picked.path);
+      if (!await file.exists()) {
+        if (mounted) {
+          GFToast.showToast(
+            'File gambar tidak valid',
+            context,
+            toastPosition: GFToastPosition.BOTTOM,
+            toastDuration: 2,
+          );
+        }
+        return;
+      }
+
+      // Show Preview Dialog before uploading
+      final confirm = await _showImagePreviewDialog(file);
+      if (!confirm) return; // User cancelled in preview
+
+      if (!ProfileService.instance.isAuthenticated) {
+        if (mounted) {
+          GFToast.showToast(
+            'Silakan login terlebih dahulu',
+            context,
+            toastPosition: GFToastPosition.BOTTOM,
+            toastDuration: 2,
+          );
+        }
+        return;
+      }
+
+      setState(() => _isUploadingImage = true);
+
+      final downloadUrl = await ProfileService.instance.uploadProfileImage(file);
+
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+          if (downloadUrl != null && _profile != null) {
+            _profile = _profile!.copyWith(profileImage: downloadUrl);
+          }
+        });
+
+        if (downloadUrl != null) {
+          GFToast.showToast(
+            'Foto profil berhasil diperbarui',
+            context,
+            toastPosition: GFToastPosition.BOTTOM,
+            toastDuration: 2,
+          );
+        } else {
+          GFToast.showToast(
+            'Gagal memperbarui foto profil',
+            context,
+            toastPosition: GFToastPosition.BOTTOM,
+            toastDuration: 2,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+        GFToast.showToast(
+          'Gagal memperbarui foto profil',
+          context,
+          toastPosition: GFToastPosition.BOTTOM,
+        );
+      }
+    }
+  }
+
+  Widget _buildAvatarImage(String? avatarPath, double size) {
+    if (avatarPath == null || avatarPath.trim().isEmpty) {
+      return Image.asset(
+        'assets/image/playstore.png',
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+      );
+    }
+
+    if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
+      return Image.network(
+        avatarPath,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Image.asset(
+          'assets/image/playstore.png',
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
 
     try {
-      if (widget.user?.id != null) {
-        final dbUser = await DbHelper.instance.getUserById(widget.user!.id!);
-        if (dbUser != null) {
-          name = prefs.getString('user_name_$userId') ?? dbUser.name;
-          email = prefs.getString('user_email_$userId') ?? dbUser.email;
-          avatar =
-              prefs.getString('user_avatar_$userId') ?? dbUser.profileImage;
-        }
+      final file = File(avatarPath);
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Image.asset(
+            'assets/image/playstore.png',
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+          ),
+        );
       }
     } catch (_) {}
 
-    if (mounted) {
-      setState(() {
-        _profileName = name;
-        _profileEmail = email;
-        _profileAvatar = avatar;
-      });
-    }
+    return Image.asset(
+      'assets/image/playstore.png',
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+    );
   }
 
   @override
@@ -101,9 +325,7 @@ class _HalamanProfilState extends State<HalamanProfil>
             SizedBox(width: 10),
             Text(
               "Konfirmasi Logout",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -142,50 +364,65 @@ class _HalamanProfilState extends State<HalamanProfil>
   void _onNavTapped(int index) {
     if (index == 4) return;
 
-    switch (index) {
-      case 0:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanBeranda(user: widget.user),
-          ),
-        );
-        break;
-      case 1:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanJelajah(user: widget.user),
-          ),
-        );
-        break;
-      case 2:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanAiPlanner(user: widget.user),
-          ),
-        );
-        break;
-      case 3:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanBudget(user: widget.user),
-          ),
-        );
-        break;
-      case 4:
-        break;
+    if (widget.onSwitchTab != null) {
+      widget.onSwitchTab!(index);
+      return;
     }
+
+    if (index == 0) {
+      if (Navigator.canPop(context)) {
+        Navigator.popUntil(context, (route) => route.isFirst);
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                HalamanUtama(user: widget.user, initialTab: 0),
+          ),
+        );
+      }
+      return;
+    }
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            HalamanUtama(user: widget.user, initialTab: index),
+      ),
+      (route) => false,
+    );
+  }
+
+  User? _getSafeAuthUser() {
+    try {
+      return FirebaseAuth.instance.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _getMembershipSubtitle() {
+    final creationTime = _getSafeAuthUser()?.metadata.creationTime;
+    if (creationTime != null) {
+      return "Member sejak ${creationTime.year}";
+    }
+    if (_profile != null && _profile!.createdAt.isNotEmpty) {
+      try {
+        final parsed = DateTime.parse(_profile!.createdAt);
+        return "Member sejak ${parsed.year}";
+      } catch (_) {}
+    }
+    return "Member Tride";
   }
 
   @override
   Widget build(BuildContext context) {
-    final userName = _profileName ?? widget.user?.nama ?? 'Zhilly Hilmansyah';
-    final userEmail = _profileEmail ?? widget.user?.email ?? 'zhilly@example.com';
-    final userAvatar = _profileAvatar ??
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop';
+    final currentAuthUser = _getSafeAuthUser();
+    final userEmail = currentAuthUser?.email ?? _profile?.email ?? widget.user?.email ?? '';
+    final userName = _profile?.name ?? widget.user?.nama ?? currentAuthUser?.displayName ?? (userEmail.isNotEmpty ? userEmail.split('@').first : 'Pengguna Tride');
+    final userAvatar = _profile?.profileImage ?? widget.user?.profileImage ?? currentAuthUser?.photoURL;
+    final membershipSubtitle = _getMembershipSubtitle();
 
     return Scaffold(
       extendBody: true,
@@ -253,7 +490,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                       ),
                     ),
 
-                    // Avatar with Orbit Ring & Badge
+                    // Avatar with Orbit Ring & Edit Button
                     Positioned(
                       bottom: -40,
                       child: Stack(
@@ -293,42 +530,43 @@ class _HalamanProfilState extends State<HalamanProfil>
                             radius: 54,
                             shape: GFAvatarShape.circle,
                             child: ClipOval(
-                              child: Image.network(
-                                userAvatar,
-                                width: 108,
-                                height: 108,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Image.asset(
-                                      'assets/image/playstore.png',
-                                      width: 108,
-                                      height: 108,
-                                      fit: BoxFit.cover,
-                                    ),
-                              ),
+                              child: _isUploadingImage
+                                  ? Container(
+                                      color: AppColors.surfaceVariant,
+                                      child: const Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: AppColors.primaryDeep,
+                                        ),
+                                      ),
+                                    )
+                                  : _buildAvatarImage(userAvatar, 108),
                             ),
                           ),
 
-                          // Pro Badge
+                          // Edit Photo Badge
                           Positioned(
                             bottom: 2,
                             right: 2,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: AppColors.background,
-                                shape: BoxShape.circle,
-                              ),
+                            child: GestureDetector(
+                              onTap: _isUploadingImage ? null : _pickAndUploadAvatar,
                               child: Container(
-                                padding: const EdgeInsets.all(5),
+                                padding: const EdgeInsets.all(4),
                                 decoration: const BoxDecoration(
-                                  color: Color(0xFF40C2FD),
+                                  color: AppColors.background,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
-                                  Icons.edit,
-                                  color: AppColors.textWhite,
-                                  size: 16,
+                                child: Container(
+                                  padding: const EdgeInsets.all(5),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF40C2FD),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt_rounded,
+                                    color: AppColors.textWhite,
+                                    size: 16,
+                                  ),
                                 ),
                               ),
                             ),
@@ -341,7 +579,7 @@ class _HalamanProfilState extends State<HalamanProfil>
 
                 const SizedBox(height: 52),
 
-                // Profile Name & Membership Subtitle
+                // Profile Name & Real Membership Subtitle
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
@@ -363,35 +601,13 @@ class _HalamanProfilState extends State<HalamanProfil>
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "Explorer Level 4",
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 8),
-                            width: 4,
-                            height: 4,
-                            decoration: const BoxDecoration(
-                              color: AppColors.textLight,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const Text(
-                            "Member '21",
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        membershipSubtitle,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -399,7 +615,7 @@ class _HalamanProfilState extends State<HalamanProfil>
 
                 const SizedBox(height: 24),
 
-                // Airy Traveler Stats Row
+                // Airy Traveler Stats Row (Real Trips Count & Real Saved Places Count)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Container(
@@ -407,8 +623,8 @@ class _HalamanProfilState extends State<HalamanProfil>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        const ProfileStatItem(
-                          value: "14",
+                        ProfileStatItem(
+                          value: "$_tripsCount",
                           label: "PERJALANAN",
                           valueColor: AppColors.primaryDeep,
                         ),
@@ -417,9 +633,9 @@ class _HalamanProfilState extends State<HalamanProfil>
                           width: 1,
                           color: AppColors.surfaceVariant,
                         ),
-                        const ProfileStatItem(
-                          value: "8",
-                          label: "NEGARA",
+                        ProfileStatItem(
+                          value: "$_savedPlacesCount",
+                          label: "TEMPAT TERSIMPAN",
                           valueColor: AppColors.textPrimary,
                         ),
                       ],
@@ -429,7 +645,7 @@ class _HalamanProfilState extends State<HalamanProfil>
 
                 const SizedBox(height: 32),
 
-                // Journey Highlights Section (Timeline Polaroid Style)
+                // Dynamic Journey Highlights Section (Real Trip Highlight or Empty State)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
@@ -444,83 +660,14 @@ class _HalamanProfilState extends State<HalamanProfil>
                         ),
                       ),
                       const SizedBox(height: 16),
-
-                      // Timeline List Container
-                      Container(
-                        padding: const EdgeInsets.only(left: 12),
-                        child: Stack(
-                          children: [
-                            // Timeline Line
-                            Positioned(
-                              left: 5,
-                              top: 10,
-                              bottom: 20,
-                              child: Container(
-                                width: 2,
-                                color: AppColors.primaryFixed,
-                              ),
-                            ),
-
-                            Column(
-                              children: [
-                                // Milestone 1: First Solo Trip
-                                const MilestoneCard(
-                                  dotColor: AppColors.primaryDeep,
-                                  title: "First Solo Trip",
-                                  subtitle: "Patagonia, Argentina • Oct 2022",
-                                  imageUrl:
-                                      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=600&auto=format&fit=crop',
-                                  fallbackIcon: Icons.landscape_rounded,
-                                  rotateAngle: 0.02,
-                                ),
-                                const SizedBox(height: 20),
-
-                                // Milestone 2: Eco Traveler Certified
-                                MilestoneCard(
-                                  dotColor: AppColors.mountain,
-                                  title: "Eco Traveler Certified",
-                                  subtitle: "Offset 10,000 miles • Mar 2023",
-                                  customContent: Container(
-                                    height: 120,
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surfaceLight,
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.eco_rounded,
-                                        size: 48,
-                                        color: AppColors.mountain,
-                                      ),
-                                    ),
-                                  ),
-                                  rotateAngle: -0.02,
-                                ),
-                                const SizedBox(height: 20),
-
-                                // Milestone 3: Peak Bagger
-                                const MilestoneCard(
-                                  dotColor: AppColors.warning,
-                                  title: "Peak Bagger",
-                                  subtitle: "Mt. Fuji Summit • Aug 2023",
-                                  imageUrl:
-                                      'https://images.unsplash.com/photo-1491557345352-5929e343eb89?q=80&w=600&auto=format&fit=crop',
-                                  fallbackIcon: Icons.terrain_rounded,
-                                  rotateAngle: 0.03,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                      _buildJourneyHighlightsSection(),
                     ],
                   ),
                 ),
 
                 const SizedBox(height: 32),
 
-                // Preferences Section
+                // Preferences Section (Clean & Real Actions)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
@@ -541,7 +688,9 @@ class _HalamanProfilState extends State<HalamanProfil>
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: AppColors.surfaceVariant.withValues(alpha: 0.6),
+                            color: AppColors.surfaceVariant.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -556,6 +705,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                           borderRadius: BorderRadius.circular(24),
                           child: Column(
                             children: [
+                              // 1. Informasi Pribadi
                               PreferenceTile(
                                 icon: Icons.person_outline_rounded,
                                 title: "Informasi Pribadi",
@@ -574,7 +724,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                                             : null,
                                       ),
                                     ),
-                                  ).then((_) => _loadUserData());
+                                  ).then((_) => _loadProfileAndStats());
                                 },
                               ),
                               const Divider(
@@ -583,6 +733,8 @@ class _HalamanProfilState extends State<HalamanProfil>
                                 endIndent: 16,
                                 color: AppColors.surfaceVariant,
                               ),
+
+                              // 2. Tempat Tersimpan
                               PreferenceTile(
                                 icon: Icons.favorite_border_rounded,
                                 title: "Tempat Tersimpan",
@@ -592,12 +744,14 @@ class _HalamanProfilState extends State<HalamanProfil>
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryDeep.withValues(alpha: 0.1),
+                                    color: AppColors.primaryDeep.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Text(
-                                    "Terfavorit",
-                                    style: TextStyle(
+                                  child: Text(
+                                    "$_savedPlacesCount Tersimpan",
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       color: AppColors.primaryDeep,
@@ -611,7 +765,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                                       builder: (context) =>
                                           HalamanSavedPlaces(user: widget.user),
                                     ),
-                                  );
+                                  ).then((_) => _loadProfileAndStats());
                                 },
                               ),
                               const Divider(
@@ -620,48 +774,38 @@ class _HalamanProfilState extends State<HalamanProfil>
                                 endIndent: 16,
                                 color: AppColors.surfaceVariant,
                               ),
+
+                              // 3. Personal Travel Data
                               PreferenceTile(
-                                icon: Icons.credit_card_outlined,
-                                title: "Metode Pembayaran",
-                                onTap: () {},
-                              ),
-                              const Divider(
-                                height: 1,
-                                indent: 56,
-                                endIndent: 16,
-                                color: AppColors.surfaceVariant,
-                              ),
-                              PreferenceTile(
-                                icon: Icons.notifications_none_rounded,
-                                title: "Notifikasi",
-                                trailing: Switch(
-                                  value: _notificationsEnabled,
-                                  onChanged: (val) {
-                                    setState(() {
-                                      _notificationsEnabled = val;
-                                    });
-                                  },
-                                  activeTrackColor: AppColors.primaryDeep,
+                                icon: Icons.flight_takeoff_rounded,
+                                title: "Personal Travel Data",
+                                trailing: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.nature.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Text(
+                                    "Preferensi",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.nature,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              const Divider(
-                                height: 1,
-                                indent: 56,
-                                endIndent: 16,
-                                color: AppColors.surfaceVariant,
-                              ),
-                              PreferenceTile(
-                                icon: Icons.tune_rounded,
-                                title: "Pengaturan Aplikasi",
-                                trailing: Switch(
-                                  value: _darkMode,
-                                  onChanged: (val) {
-                                    setState(() {
-                                      _darkMode = val;
-                                    });
-                                  },
-                                  activeTrackColor: AppColors.primaryDeep,
-                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const HalamanPersonalTravelData(),
+                                    ),
+                                  ).then((_) => _loadProfileAndStats());
+                                },
                               ),
                             ],
                           ),
@@ -752,7 +896,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                       ),
                     ),
 
-                    // Settings Button
+                    // Settings Button (Opens HalamanPengaturan)
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.2),
@@ -766,7 +910,14 @@ class _HalamanProfilState extends State<HalamanProfil>
                           Icons.settings_outlined,
                           color: AppColors.textWhite,
                         ),
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HalamanPengaturan(),
+                            ),
+                          ).then((_) => _loadProfileAndStats());
+                        },
                       ),
                     ),
                   ],
@@ -784,6 +935,204 @@ class _HalamanProfilState extends State<HalamanProfil>
               selectedIndex: 4,
               onDestinationSelected: _onNavTapped,
             ),
+    );
+  }
+
+  Widget _buildJourneyHighlightsSection() {
+    if (_userTrips.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppColors.surfaceVariant.withValues(alpha: 0.6),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primaryDeep.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.flight_takeoff_rounded,
+                size: 36,
+                color: AppColors.primaryDeep,
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              "Belum Ada Perjalanan",
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              "Mulai buat rencana liburan impianmu bersama asisten cerdas Tride.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                if (widget.onSwitchTab != null) {
+                  widget.onSwitchTab!(2); // Switch to AI Planner tab
+                }
+              },
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text("Buat Trip Baru"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryDeep,
+                foregroundColor: AppColors.textWhite,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Display recent trips dynamically
+    final latestTrips = _userTrips.take(3).toList();
+
+    return Column(
+      children: latestTrips.map((trip) {
+        final destination = trip.destinationName ?? trip.destinationLocation ?? 'Destinasi Wisata';
+        final dates = "${trip.startDate} - ${trip.endDate}";
+        final imageUrl = trip.imageUrl;
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => HalamanTripDetail(
+                    user: widget.user,
+                    trip: trip,
+                    title: trip.tripName,
+                    dateRange: "${trip.startDate} - ${trip.endDate}",
+                    imageUrl: trip.imageUrl ?? '',
+                  ),
+                ),
+              ).then((_) => _loadProfileAndStats());
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.surfaceVariant.withValues(alpha: 0.6),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      width: 72,
+                      height: 72,
+                      color: AppColors.surfaceVariant,
+                      child: imageUrl != null && imageUrl.isNotEmpty
+                          ? Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Center(
+                                child: Icon(Icons.landscape_rounded, color: AppColors.primaryDeep),
+                              ),
+                            )
+                          : const Center(
+                              child: Icon(Icons.landscape_rounded, color: AppColors.primaryDeep),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          trip.tripName,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                destination,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.primaryDeep),
+                            const SizedBox(width: 4),
+                            Text(
+                              dates,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.primaryDeep,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded, color: AppColors.textLight),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
