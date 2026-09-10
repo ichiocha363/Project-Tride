@@ -1,35 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:getwidget/getwidget.dart';
+import 'package:project_tride/Database/destination_model.dart';
+import 'package:project_tride/Database/trip_model.dart';
 import 'package:project_tride/Models/user_model.dart';
-import '../halaman beranda/halaman_beranda.dart';
-import '../halaman budget/halaman_budget.dart';
-import '../halaman explore/halaman_jelajah.dart';
+import 'package:project_tride/Services/destination_service.dart';
+import 'package:project_tride/Services/gemini_service.dart';
+import 'package:project_tride/Services/trip_service.dart';
 import '../halaman profile/halaman_profil.dart';
 
 class HalamanAiPlanner extends StatefulWidget {
   final UserModel? user;
   final String destination;
+  final DestinationModel? destinationModel;
   final String dates;
   final DateTime? departureDate;
   final DateTime? returnDate;
+  final bool isFlexibleDate;
+  final int durationDays;
   final String companion;
+  final int peopleCount;
+  final bool hasChildren;
+  final bool hasElderly;
   final List<String> styles;
   final String budget;
+  final int? budgetCeiling;
   final String pace;
   final String accommodation;
+  final List<String>? accommodationsList;
 
   const HalamanAiPlanner({
     super.key,
     this.user,
     this.destination = 'Bali, Indonesia',
+    this.destinationModel,
     this.dates = '12 - 16 Sep 2024 (5 Hari)',
     this.departureDate,
     this.returnDate,
+    this.isFlexibleDate = false,
+    this.durationDays = 5,
     this.companion = 'Solo',
+    this.peopleCount = 1,
+    this.hasChildren = false,
+    this.hasElderly = false,
     this.styles = const ['Photography', 'Nature'],
     this.budget = 'Menengah',
+    this.budgetCeiling = 7500000,
     this.pace = 'Seimbang',
     this.accommodation = 'Hotel (Utama)',
+    this.accommodationsList,
   });
 
   @override
@@ -42,31 +60,87 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
   Map<String, dynamic>? _generatedItinerary;
 
   late String _destination;
+  DestinationModel? _destinationModel;
   late String _dates;
   DateTime? _departureDate;
   DateTime? _returnDate;
+  late int _durationDays;
+  late String _companion;
+  late int _peopleCount;
+  late bool _hasChildren;
+  late bool _hasElderly;
   late List<String> _styles;
   late String _budget;
+  late int _budgetCeiling;
   late String _pace;
   late String _accommodation;
+  late List<String> _accommodationsList;
 
   @override
   void initState() {
     super.initState();
     _destination = widget.destination;
+    _destinationModel = widget.destinationModel;
     _dates = widget.dates;
     _departureDate = widget.departureDate;
     _returnDate = widget.returnDate;
+    _durationDays = widget.durationDays;
+    _companion = widget.companion;
+    _peopleCount = widget.peopleCount;
+    _hasChildren = widget.hasChildren;
+    _hasElderly = widget.hasElderly;
     _styles = List<String>.from(widget.styles);
     _budget = widget.budget;
+    _budgetCeiling = widget.budgetCeiling ?? 7500000;
     _pace = widget.pace;
     _accommodation = widget.accommodation;
+    _accommodationsList = widget.accommodationsList != null
+        ? List<String>.from(widget.accommodationsList!)
+        : [_accommodation];
+
+    _fetchDestinationDetailsIfNeeded();
   }
 
   @override
   void dispose() {
     _specialNeedsController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchDestinationDetailsIfNeeded() async {
+    if (_destinationModel == null) {
+      try {
+        final all = await DestinationService.instance.getDestinations();
+        if (all.isNotEmpty && mounted) {
+          final match = all.firstWhere(
+            (d) => d.name.toLowerCase() == _destination.toLowerCase(),
+            orElse: () => all.first,
+          );
+          setState(() {
+            _destinationModel = match;
+          });
+        }
+      } catch (_) {}
+    }
+  }
+
+  String _formatCurrency(int amount) {
+    return amount.toString().replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]}.',
+        );
+  }
+
+  String _getPeopleSubtitle() {
+    final List<String> details = [];
+    if (_companion == 'Keluarga' || _companion == 'Grup') {
+      details.add(_companion);
+      if (_hasChildren) details.add("ada anak-anak");
+      if (_hasElderly) details.add("ada lansia");
+    } else {
+      details.add(_companion);
+    }
+    return details.join(', ');
   }
 
   void _editDestination() {
@@ -124,6 +198,7 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                       setState(() {
                         _destination = val;
                       });
+                      _fetchDestinationDetailsIfNeeded();
                     }
                     Navigator.pop(context);
                   },
@@ -152,9 +227,8 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
     final DateTime initialStart = _departureDate ?? DateTime(now.year, 9, 12);
     final DateTime initialEnd = _returnDate ?? DateTime(now.year, 9, 16);
 
-    final DateTime firstDateAllowed = initialStart.isBefore(now)
-        ? initialStart
-        : now;
+    final DateTime firstDateAllowed =
+        initialStart.isBefore(now) ? initialStart : now;
 
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
@@ -203,6 +277,7 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
       setState(() {
         _departureDate = picked.start;
         _returnDate = picked.end;
+        _durationDays = days;
         _dates = "$startStr - $endStr ($days Hari)";
       });
     }
@@ -239,42 +314,40 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
-                    children: ['Fotografi', 'Kuliner', 'Alam', 'Petualangan']
-                        .map((style) {
-                          final isSelected =
-                              selectedSet.contains(style) ||
-                              (style == 'Fotografi' &&
-                                  selectedSet.contains('Photography')) ||
-                              (style == 'Alam' &&
-                                  selectedSet.contains('Nature'));
-                          return FilterChip(
-                            selected: isSelected,
-                            label: Text(style),
-                            selectedColor: const Color(0xFF004AC6),
-                            labelStyle: TextStyle(
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF0F172A),
-                              fontWeight: FontWeight.w600,
-                            ),
-                            onSelected: (val) {
-                              setModalState(() {
-                                if (val) {
-                                  selectedSet.add(style);
-                                } else {
-                                  selectedSet.remove(style);
-                                  if (style == 'Fotografi') {
-                                    selectedSet.remove('Photography');
-                                  }
-                                  if (style == 'Alam') {
-                                    selectedSet.remove('Nature');
-                                  }
-                                }
-                              });
-                            },
-                          );
-                        })
-                        .toList(),
+                    children: [
+                      'Photography',
+                      'Nature',
+                      'Fotografi',
+                      'Kuliner',
+                      'Alam',
+                      'Petualangan',
+                      'Budaya',
+                      'Relaksasi'
+                    ].map((style) {
+                      final isSelected = selectedSet.contains(style);
+                      return FilterChip(
+                        selected: isSelected,
+                        label: Text(style),
+                        selectedColor: const Color(0xFF004AC6),
+                        labelStyle: TextStyle(
+                          color: isSelected
+                              ? Colors.white
+                              : const Color(0xFF0F172A),
+                          fontWeight: FontWeight.w600,
+                        ),
+                        onSelected: (val) {
+                          setModalState(() {
+                            if (val) {
+                              if (selectedSet.length < 3) {
+                                selectedSet.add(style);
+                              }
+                            } else {
+                              selectedSet.remove(style);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
                   ),
                   const SizedBox(height: 24),
                   SizedBox(
@@ -341,17 +414,29 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                   ),
                   const SizedBox(height: 16),
                   ...['Hemat', 'Menengah', 'Mewah'].map((b) {
-                    return RadioListTile<String>(
+                    final isSelected = tempBudget == b;
+                    return ListTile(
                       title: Text(
                         b,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected
+                              ? const Color(0xFF004AC6)
+                              : const Color(0xFF0F172A),
+                        ),
                       ),
-                      value: b,
-                      groupValue: tempBudget,
-                      activeColor: const Color(0xFF004AC6),
-                      onChanged: (val) {
+                      leading: Icon(
+                        isSelected
+                            ? Icons.radio_button_checked_rounded
+                            : Icons.radio_button_off_rounded,
+                        color: isSelected
+                            ? const Color(0xFF004AC6)
+                            : const Color(0xFF64748B),
+                      ),
+                      onTap: () {
                         setModalState(() {
-                          tempBudget = val!;
+                          tempBudget = b;
                         });
                       },
                     );
@@ -364,6 +449,13 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                       onPressed: () {
                         setState(() {
                           _budget = tempBudget;
+                          if (_budget == 'Hemat') {
+                            _budgetCeiling = 3000000;
+                          } else if (_budget == 'Mewah') {
+                            _budgetCeiling = 15000000;
+                          } else {
+                            _budgetCeiling = 7500000;
+                          }
                         });
                         Navigator.pop(context);
                       },
@@ -419,17 +511,29 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                   ),
                   const SizedBox(height: 16),
                   ...['Santai', 'Seimbang', 'Padat'].map((p) {
-                    return RadioListTile<String>(
+                    final isSelected = tempPace == p;
+                    return ListTile(
                       title: Text(
                         p,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected
+                              ? const Color(0xFF004AC6)
+                              : const Color(0xFF0F172A),
+                        ),
                       ),
-                      value: p,
-                      groupValue: tempPace,
-                      activeColor: const Color(0xFF004AC6),
-                      onChanged: (val) {
+                      leading: Icon(
+                        isSelected
+                            ? Icons.radio_button_checked_rounded
+                            : Icons.radio_button_off_rounded,
+                        color: isSelected
+                            ? const Color(0xFF004AC6)
+                            : const Color(0xFF64748B),
+                      ),
+                      onTap: () {
                         setModalState(() {
-                          tempPace = val!;
+                          tempPace = p;
                         });
                       },
                     );
@@ -471,7 +575,7 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
   }
 
   void _editAccommodation() {
-    String tempAcc = _accommodation;
+    final selectedAcc = Set<String>.from(_accommodationsList);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -496,20 +600,22 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ...['Hotel (Utama)', 'Hostel', 'Homestay', 'Villa'].map((
-                    acc,
-                  ) {
-                    return RadioListTile<String>(
+                  ...['Hotel (Utama)', 'Hotel', 'Hostel', 'Homestay', 'Villa'].map((acc) {
+                    final isSelected = selectedAcc.contains(acc);
+                    return CheckboxListTile(
                       title: Text(
                         acc,
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      value: acc,
-                      groupValue: tempAcc,
+                      value: isSelected,
                       activeColor: const Color(0xFF004AC6),
                       onChanged: (val) {
                         setModalState(() {
-                          tempAcc = val!;
+                          if (val == true) {
+                            selectedAcc.add(acc);
+                          } else if (selectedAcc.length > 1) {
+                            selectedAcc.remove(acc);
+                          }
                         });
                       },
                     );
@@ -521,7 +627,8 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                     child: ElevatedButton(
                       onPressed: () {
                         setState(() {
-                          _accommodation = tempAcc;
+                          _accommodationsList = selectedAcc.toList();
+                          _accommodation = _accommodationsList.join(' & ');
                         });
                         Navigator.pop(context);
                       },
@@ -555,70 +662,43 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
       _isGenerating = true;
     });
 
-    // Simulate AI generation delay
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final itinerary = await GeminiService.instance.generateItinerary(
+        destination: _destination,
+        durationDays: _durationDays,
+        dates: _dates,
+        companion: _companion,
+        peopleCount: _peopleCount,
+        hasChildren: _hasChildren,
+        hasElderly: _hasElderly,
+        styles: _styles,
+        budget: _budget,
+        budgetCeiling: _budgetCeiling,
+        pace: _pace,
+        accommodation: _accommodation,
+        specialNeeds: _specialNeedsController.text,
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    final stylesText = _styles.join(' & ');
+      setState(() {
+        _isGenerating = false;
+        _generatedItinerary = itinerary;
+      });
 
-    setState(() {
-      _isGenerating = false;
-      _generatedItinerary = {
-        'destination': _destination,
-        'duration': '5 Hari 4 Malam',
-        'styles': stylesText,
-        'schedule': [
-          {
-            'day': 'Hari 1',
-            'title': 'Kedatangan & Sunset Photo Spot',
-            'activities': [
-              'Penjemputan di Bandara / Lokasi Destinasi ($_destination)',
-              'Check-in di Akomodasi ($_accommodation)',
-              'Golden hour photography & santap malam lokal',
-            ],
-          },
-          {
-            'day': 'Hari 2',
-            'title': 'Eksplorasi Alam & Spot Ikonik',
-            'activities': [
-              'Trekking pagi hari dengan ritme $_pace',
-              'Sesi foto panoramik & wisata alam',
-              'Santap siang hidangan khas daerah',
-            ],
-          },
-          {
-            'day': 'Hari 3',
-            'title': 'Wisata Kuliner & Budaya Lokal',
-            'activities': [
-              'Sarapan lokal & kopi daerah',
-              'Jelajah pusat kerajinan tangan & budaya',
-              'Santap malam favorit wisatawan (Budget: $_budget)',
-            ],
-          },
-          {
-            'day': 'Hari 4',
-            'title': 'Eksplorasi Santai & Relaksasi',
-            'activities': [
-              'Kunjungan ke destinasi pilihan sesuai gaya ($stylesText)',
-              'Waktu santai & relaksasi',
-              'Sunset dinner di spot pemandangan terbaik',
-            ],
-          },
-          {
-            'day': 'Hari 5',
-            'title': 'Souvenir & Penutupan Petualangan',
-            'activities': [
-              'Belanja oleh-oleh khas daerah',
-              'Relaksasi spa / coffee break',
-              'Transfer kembali ke Bandara / Titik Kepulangan',
-            ],
-          },
-        ],
-      };
-    });
-
-    _showItineraryDialog();
+      _showItineraryDialog();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isGenerating = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Terjadi kendala saat meracik itinerary: $e"),
+          backgroundColor: const Color(0xFFBA1A1A),
+        ),
+      );
+    }
   }
 
   void _showItineraryDialog() {
@@ -658,7 +738,7 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2563EB).withValues(alpha: 0.12),
+                      color: const Color(0xFF004AC6).withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -673,11 +753,15 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "AI Generated Itinerary",
+                          _generatedItinerary!['isAiGenerated'] == true
+                              ? "✨ Dynamic Gemini AI Itinerary"
+                              : "📍 Template Katalog Tride",
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade600,
+                            color: _generatedItinerary!['isAiGenerated'] == true
+                                ? const Color(0xFF004AC6)
+                                : Colors.amber.shade900,
                             letterSpacing: 0.6,
                           ),
                         ),
@@ -697,9 +781,33 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
               ),
               const SizedBox(height: 16),
 
-              // Tags
-              Row(
+              // Tags (Wrap to prevent pixel overflow)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
+                  Chip(
+                    avatar: Icon(
+                      _generatedItinerary!['isAiGenerated'] == true
+                          ? Icons.psychology_rounded
+                          : Icons.bookmark_border_rounded,
+                      size: 16,
+                      color: const Color(0xFF004AC6),
+                    ),
+                    label: Text(
+                      _generatedItinerary!['source'] ?? 'Gemini AI Engine',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: Color(0xFF004AC6),
+                      ),
+                    ),
+                    backgroundColor: const Color(0xFFE8EFFD),
+                    side: BorderSide.none,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   Chip(
                     avatar: const Icon(Icons.timer_outlined, size: 16),
                     label: Text(_generatedItinerary!['duration']),
@@ -709,10 +817,13 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   Chip(
                     avatar: const Icon(Icons.style_outlined, size: 16),
-                    label: Text(_generatedItinerary!['styles']),
+                    label: Text(
+                      _generatedItinerary!['styles'],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     backgroundColor: const Color(0xFFDBE1FF),
                     side: BorderSide.none,
                     shape: RoundedRectangleBorder(
@@ -768,31 +879,136 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                         contentChild: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             ...((dayItem['activities'] as List).map(
-                              (act) => Padding(
-                                padding: const EdgeInsets.only(bottom: 6),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Icon(
-                                      Icons.check_circle_outline_rounded,
-                                      size: 16,
-                                      color: Color(0xFF3E9C5D),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        act,
-                                        style: TextStyle(
+                              (act) {
+                                final Map<String, dynamic> actMap = act is Map
+                                    ? Map<String, dynamic>.from(act)
+                                    : {
+                                        'time': 'Flexi Time',
+                                        'location': _destination,
+                                        'title': act.toString(),
+                                        'description': act.toString(),
+                                        'tips': null,
+                                      };
+
+                                final timeStr = actMap['time']?.toString() ?? 'Pagi';
+                                final locationStr = actMap['location']?.toString() ?? _destination;
+                                final titleStr = actMap['title']?.toString() ?? actMap['description']?.toString() ?? '';
+                                final descStr = actMap['description']?.toString() ?? titleStr;
+                                final tipsStr = actMap['tips']?.toString();
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Header Badges: Time & Location
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFDBE1FF),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF004AC6)),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  timeStr,
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF004AC6),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Row(
+                                              children: [
+                                                const Icon(Icons.location_on_rounded, size: 13, color: Color(0xFFBA1A1A)),
+                                                const SizedBox(width: 3),
+                                                Expanded(
+                                                  child: Text(
+                                                    locationStr,
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: Color(0xFF0F172A),
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      // Activity Title
+                                      Text(
+                                        titleStr,
+                                        style: const TextStyle(
                                           fontSize: 13,
-                                          color: Colors.grey.shade700,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF0F172A),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                                      if (descStr != titleStr && descStr.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          descStr,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFF475569),
+                                            height: 1.35,
+                                          ),
+                                        ),
+                                      ],
+                                      if (tipsStr != null && tipsStr.trim().isNotEmpty) ...[
+                                        const SizedBox(height: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFFFFBEB),
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(color: const Color(0xFFFDE68A)),
+                                          ),
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              const Icon(Icons.lightbulb_rounded, size: 13, color: Color(0xFFD97706)),
+                                              const SizedBox(width: 5),
+                                              Expanded(
+                                                child: Text(
+                                                  tipsStr,
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: Color(0xFF92400E),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                );
+                              },
                             )),
                           ],
                         ),
@@ -814,32 +1030,73 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                 ),
               ),
 
-              // Action button
+              // Action button (Save Trip via TripService)
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Row(
-                          children: [
-                            Icon(
-                              Icons.bookmark_added_rounded,
-                              color: Colors.white,
-                            ),
-                            SizedBox(width: 10),
-                            Text("Rencana Perjalanan berhasil disimpan!"),
-                          ],
-                        ),
-                        backgroundColor: const Color(0xFF3E9C5D),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
+                  onPressed: () async {
+                    final now = DateTime.now();
+                    final startDt =
+                        _departureDate ?? now.add(const Duration(days: 7));
+                    final endDt =
+                        _returnDate ?? startDt.add(Duration(days: _durationDays));
+                    final startStr =
+                        "${startDt.year.toString().padLeft(4, '0')}-${startDt.month.toString().padLeft(2, '0')}-${startDt.day.toString().padLeft(2, '0')}";
+                    final endStr =
+                        "${endDt.year.toString().padLeft(4, '0')}-${endDt.month.toString().padLeft(2, '0')}-${endDt.day.toString().padLeft(2, '0')}";
+
+                    final newTrip = TripModel(
+                      userId: widget.user?.id?.toString() ??
+                          TripService.instance.currentUserId ??
+                          '',
+                      tripName: "Trip ke $_destination",
+                      destinationId: _destinationModel?.id,
+                      destinationName: _destination,
+                      destinationLocation: _destinationModel?.location,
+                      imageUrl: _destinationModel?.image,
+                      startDate: startStr,
+                      endDate: endStr,
+                      budget: _budgetCeiling,
+                      travelStyle: _styles.join(', '),
+                      notes:
+                          "Akomodasi: $_accommodation · Ritme: $_pace · Teman: $_companion ($_peopleCount Orang)",
+                      status: 'upcoming',
+                      createdAt: DateTime.now().toIso8601String(),
+                      itineraryDays: _generatedItinerary != null &&
+                              _generatedItinerary!['schedule'] is List
+                          ? List<Map<String, dynamic>>.from(
+                              (_generatedItinerary!['schedule'] as List).map(
+                                (e) => Map<String, dynamic>.from(e as Map),
+                              ),
+                            )
+                          : null,
                     );
+
+                    await TripService.instance.createTrip(newTrip);
+
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Row(
+                            children: [
+                              Icon(
+                                Icons.bookmark_added_rounded,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 10),
+                              Text("Rencana Perjalanan berhasil disimpan!"),
+                            ],
+                          ),
+                          backgroundColor: const Color(0xFF3E9C5D),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF004AC6),
@@ -861,82 +1118,62 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
     );
   }
 
-  void _onNavTapped(int index) {
-    if (index == 2) return;
-
-    switch (index) {
-      case 0:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanBeranda(user: widget.user),
-          ),
-        );
-        break;
-      case 1:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanJelajah(user: widget.user),
-          ),
-        );
-        break;
-      case 2:
-        break;
-      case 3:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanBudget(user: widget.user),
-          ),
-        );
-        break;
-      case 4:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanProfil(user: widget.user),
-          ),
-        );
-        break;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     const Color bgCloud = Color(0xFFF8FAFC);
     const Color textNavy = Color(0xFF0F172A);
     const Color primaryBlue = Color(0xFF004AC6);
     const Color textSlate = Color(0xFF64748B);
+    const Color surfaceContainer = Color(0xFFEDEDF9);
+    const Color surfaceLow = Color(0xFFF3F3FE);
+    const Color sandBeige = Color(0xFFEDE0CB);
+    const Color warmYellow = Color(0xFFFDB813);
+    const Color naturalGreen = Color(0xFF3E9C5D);
+    const Color primaryFixed = Color(0xFFDBE1FF);
+    const Color onPrimaryFixed = Color(0xFF00174B);
+
+    final imageUrl = _destinationModel?.image ??
+        'https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=600&auto=format&fit=crop';
+
+    final ticketCode = "#TRIDE-${_destination.split(' ').first.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '')}25";
+
+    final teaserTitle = _destination.split(',').first.trim();
 
     return Scaffold(
       backgroundColor: bgCloud,
       body: CustomScrollView(
         slivers: [
-          // App Bar
+          // App Bar matching Stitch Header
           SliverAppBar(
             floating: true,
             pinned: true,
             elevation: 0,
-            backgroundColor: Colors.white.withValues(alpha: 0.9),
+            backgroundColor: Colors.white.withValues(alpha: 0.95),
             surfaceTintColor: Colors.transparent,
-            titleSpacing: 20,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_rounded, color: textNavy, size: 24),
+              onPressed: () => Navigator.pop(context),
+            ),
+            titleSpacing: 0,
             title: Row(
               children: [
                 Image.asset(
                   'assets/image/playstore.png',
-                  height: 32,
-                  width: 32,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.explore, color: primaryBlue, size: 28),
+                  height: 30,
+                  width: 30,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.explore_rounded,
+                    color: primaryBlue,
+                    size: 26,
+                  ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 const Text(
                   "Trips",
                   style: TextStyle(
                     fontFamily: 'Plus Jakarta Sans',
                     fontWeight: FontWeight.bold,
-                    fontSize: 20,
+                    fontSize: 18,
                     color: textNavy,
                   ),
                 ),
@@ -950,25 +1187,26 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => HalamanProfil(user: widget.user),
+                        builder: (context) =>
+                            HalamanProfil(user: widget.user),
                       ),
                     );
                   },
                   child: Container(
-                    width: 38,
-                    height: 38,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.grey.shade300,
+                        color: primaryFixed,
                         width: 1.5,
                       ),
-                      image: const DecorationImage(
-                        image: NetworkImage(
-                          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop',
-                        ),
-                        fit: BoxFit.cover,
-                      ),
+                      color: primaryFixed,
+                    ),
+                    child: const Icon(
+                      Icons.person_rounded,
+                      color: primaryBlue,
+                      size: 20,
                     ),
                   ),
                 ),
@@ -978,17 +1216,17 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
 
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Progress Header
+                  // 4-Segment Progress Bar (All 4 active)
                   Row(
                     children: [
                       const Icon(
                         Icons.auto_awesome_rounded,
                         color: primaryBlue,
-                        size: 20,
+                        size: 22,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -996,13 +1234,11 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                           children: List.generate(4, (index) {
                             return Expanded(
                               child: Container(
-                                height: 6,
-                                margin: EdgeInsets.only(
-                                  right: index < 3 ? 6.0 : 0.0,
-                                ),
+                                height: 4,
+                                margin: EdgeInsets.only(right: index < 3 ? 6.0 : 0.0),
                                 decoration: BoxDecoration(
                                   color: primaryBlue,
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(4),
                                 ),
                               ),
                             );
@@ -1013,267 +1249,166 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Header Texts
-                  const Text(
-                    "STEP 4 OF 4",
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: primaryBlue,
-                      letterSpacing: 1.0,
+                  // Intro Badge & Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: primaryFixed,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.done_all_rounded,
+                          size: 14,
+                          color: onPrimaryFixed,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          "STEP 4 OF 4",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: onPrimaryFixed,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   const Text(
                     "Tambahkan detail",
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: textNavy,
                       fontFamily: 'Plus Jakarta Sans',
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   const Text(
                     "Ada kebutuhan khusus? Lalu cek lagi sebelum aku buatkan itinerary-nya.",
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 13,
                       color: textSlate,
-                      height: 1.4,
+                      height: 1.35,
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 14),
 
-                  // Kebutuhan Khusus (opsional)
-                  const Text(
-                    "Kebutuhan khusus (opsional)",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: textNavy,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
+                  // Destination Teaser Thumbnail Card (Dynamic Image)
                   Container(
+                    height: 110,
+                    width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFFC3C6D7).withValues(alpha: 0.3),
-                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 10,
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    child: TextField(
-                      controller: _specialNeedsController,
-                      maxLines: 3,
-                      style: const TextStyle(fontSize: 14, color: textNavy),
-                      decoration: const InputDecoration(
-                        hintText:
-                            "Alergi kacang, pengguna kursi roda, atau ingin hindari jalanan berbatu...",
-                        hintStyle: TextStyle(fontSize: 14, color: textSlate),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-
-                  // Card Ringkasan Perjalanan
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: const Color(0xFFC3C6D7).withValues(alpha: 0.3),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(16),
                       child: Stack(
                         children: [
-                          // Decorative blue gradient corner
-                          Positioned(
-                            top: -20,
-                            right: -20,
+                          Positioned.fill(
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                color: primaryBlue,
+                                child: const Center(
+                                  child: Icon(Icons.landscape_rounded,
+                                      color: Colors.white, size: 36),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned.fill(
                             child: Container(
-                              width: 120,
-                              height: 120,
                               decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFFDBE1FF,
-                                ).withValues(alpha: 0.4),
-                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withValues(alpha: 0.85),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.all(20),
+                            padding: const EdgeInsets.all(12),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                const Text(
-                                  "Ringkasan Perjalanan",
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: textNavy,
-                                    fontFamily: 'Plus Jakarta Sans',
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-
-                                // Destinasi
-                                _buildSummaryItem(
-                                  icon: Icons.location_on_rounded,
-                                  iconBgColor: const Color(0xFFEDEDF9),
-                                  iconColor: const Color(0xFF434655),
-                                  label: "Destinasi",
-                                  valueWidget: Text(
-                                    _destination,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: textNavy,
-                                    ),
-                                  ),
-                                  onEdit: _editDestination,
-                                ),
-                                _buildDivider(),
-
-                                // Tanggal
-                                _buildSummaryItem(
-                                  icon: Icons.calendar_today_rounded,
-                                  iconBgColor: const Color(0xFFEDEDF9),
-                                  iconColor: const Color(0xFF434655),
-                                  label: "Tanggal",
-                                  valueWidget: Text(
-                                    _dates,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: textNavy,
-                                    ),
-                                  ),
-                                  onEdit: _editDates,
-                                ),
-                                _buildDivider(),
-
-                                // Gaya Perjalanan
-                                _buildSummaryItem(
-                                  icon: Icons.stars_rounded,
-                                  iconBgColor: const Color(0xFFEDEDF9),
-                                  iconColor: const Color(0xFF434655),
-                                  label: "Gaya Perjalanan",
-                                  valueWidget: Wrap(
-                                    spacing: 8,
-                                    runSpacing: 4,
-                                    children: _styles.map((style) {
-                                      final isPhoto =
-                                          style == 'Photography' ||
-                                          style == 'Fotografi';
-                                      return Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: isPhoto
-                                              ? const Color(0xFFFFDBCD)
-                                              : const Color(
-                                                  0xFF3E9C5D,
-                                                ).withValues(alpha: 0.2),
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          style,
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          "TUJUAN IMPIAN",
                                           style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: isPhoto
-                                                ? const Color(0xFF7D2D00)
-                                                : const Color(0xFF3E9C5D),
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            color: sandBeige,
+                                            letterSpacing: 0.8,
                                           ),
                                         ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                  onEdit: _editStyles,
-                                ),
-                                _buildDivider(),
-
-                                // Budget
-                                _buildSummaryItem(
-                                  icon: Icons.account_balance_wallet_rounded,
-                                  iconBgColor: const Color(0xFFEDE0CB),
-                                  iconColor: const Color(0xFF943700),
-                                  label: "Budget",
-                                  valueWidget: Text(
-                                    _budget,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: textNavy,
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          teaserTitle,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                            fontFamily: 'Plus Jakarta Sans',
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  onEdit: _editBudget,
-                                ),
-                                _buildDivider(),
-
-                                // Pace
-                                _buildSummaryItem(
-                                  icon: Icons.speed_rounded,
-                                  iconBgColor: const Color(
-                                    0xFFC4E7FF,
-                                  ).withValues(alpha: 0.5),
-                                  iconColor: const Color(0xFF00668A),
-                                  label: "Pace",
-                                  valueWidget: Text(
-                                    _pace,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: textNavy,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.2),
+                                        borderRadius:
+                                            BorderRadius.circular(16),
+                                      ),
+                                      child: const Row(
+                                        children: [
+                                          Icon(
+                                            Icons.wb_sunny_rounded,
+                                            color: warmYellow,
+                                            size: 13,
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            "Cerah 29°C",
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  onEdit: _editPace,
-                                ),
-                                _buildDivider(),
-
-                                // Akomodasi
-                                _buildSummaryItem(
-                                  icon: Icons.home_rounded,
-                                  iconBgColor: const Color(0xFFEDEDF9),
-                                  iconColor: const Color(0xFF434655),
-                                  label: "Akomodasi",
-                                  valueWidget: Text(
-                                    _accommodation,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: textNavy,
-                                    ),
-                                  ),
-                                  onEdit: _editAccommodation,
+                                  ],
                                 ),
                               ],
                             ),
@@ -1282,21 +1417,440 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 28),
 
-                  // Button "Buat Itinerary Saya"
+                  const SizedBox(height: 16),
+
+                  // Section 1: Kebutuhan khusus (opsional)
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.edit_note_rounded,
+                              color: primaryBlue, size: 20),
+                          SizedBox(width: 6),
+                          Text(
+                            "Kebutuhan khusus (opsional)",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: textNavy,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        "Maks. 250 karakter",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: textSlate,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _specialNeedsController,
+                          maxLines: 2,
+                          maxLength: 250,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: textNavy,
+                          ),
+                          decoration: const InputDecoration(
+                            hintText:
+                                "Alergi kacang, pengguna kursi roda, atau ingin hindari jalanan berbatu...",
+                            hintStyle: TextStyle(
+                              fontSize: 12,
+                              color: Color(0x9964748B),
+                            ),
+                            border: InputBorder.none,
+                            isDense: true,
+                            counterText: "",
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.check_circle_rounded,
+                                    size: 13, color: naturalGreen),
+                                SizedBox(width: 4),
+                                Text(
+                                  "AI akan memprioritaskan preferensi ini",
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: naturalGreen,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              "${_specialNeedsController.text.length}/250",
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: textSlate,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Section 2: Ringkasan Perjalanan Header
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.assignment_rounded,
+                              color: primaryBlue, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            "Ringkasan Perjalanan",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: textNavy,
+                              fontFamily: 'Plus Jakarta Sans',
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        "LANGKAH 1 - 3",
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: textSlate,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Master Summary Card (Boarding Pass Motif)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Card Header Strip
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: const BoxDecoration(
+                            color: surfaceLow,
+                            borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(
+                                    Icons.explore_rounded,
+                                    color: primaryBlue,
+                                    size: 16,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    "TIKET RENCANA TRIDE",
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: textNavy,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: primaryFixed,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Text(
+                                  "Siap Diramu",
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: onPrimaryFixed,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            children: [
+                              // Destinasi
+                              _buildSummaryRow(
+                                icon: Icons.location_on_rounded,
+                                iconColor: primaryBlue,
+                                iconBgColor: surfaceContainer,
+                                label: "Destinasi",
+                                valueWidget: Text(
+                                  _destination,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: textNavy,
+                                  ),
+                                ),
+                                onEdit: _editDestination,
+                              ),
+                              _buildDivider(),
+
+                              // Tanggal
+                              _buildSummaryRow(
+                                icon: Icons.calendar_today_rounded,
+                                iconColor: const Color(0xFF00668A),
+                                iconBgColor: surfaceContainer,
+                                label: "Tanggal",
+                                valueWidget: Text(
+                                  _dates,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: textNavy,
+                                  ),
+                                ),
+                                onEdit: _editDates,
+                              ),
+                              _buildDivider(),
+
+                              // Jumlah Orang
+                              _buildSummaryRow(
+                                icon: Icons.group_rounded,
+                                iconColor: const Color(0xFF943700),
+                                iconBgColor: surfaceContainer,
+                                label: "Jumlah Orang",
+                                valueWidget: Text(
+                                  "$_peopleCount Orang (${_getPeopleSubtitle()})",
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: textNavy,
+                                  ),
+                                ),
+                                onEdit: () {
+                                  Navigator.pop(context);
+                                },
+                              ),
+                              _buildDivider(),
+
+                              // Gaya Perjalanan
+                              _buildSummaryRow(
+                                icon: Icons.stars_rounded,
+                                iconColor: const Color(0xFFFB7A3C),
+                                iconBgColor: surfaceContainer,
+                                label: "Gaya Perjalanan",
+                                valueWidget: Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  children: _styles.map((style) {
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: surfaceContainer,
+                                        borderRadius:
+                                            BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        style,
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: textNavy,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                                onEdit: _editStyles,
+                              ),
+                              _buildDivider(),
+
+                              // Budget
+                              _buildSummaryRow(
+                                icon: Icons.payments_rounded,
+                                iconColor: naturalGreen,
+                                iconBgColor: surfaceContainer,
+                                label: "Budget",
+                                valueWidget: Row(
+                                  children: [
+                                    Text(
+                                      _budget,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: textNavy,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: sandBeige,
+                                        borderRadius:
+                                            BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        "Pagu Rp ${_formatCurrency(_budgetCeiling)}",
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: textNavy,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                onEdit: _editBudget,
+                              ),
+                              _buildDivider(),
+
+                              // Pace
+                              _buildSummaryRow(
+                                icon: Icons.speed_rounded,
+                                iconColor: warmYellow,
+                                iconBgColor: surfaceContainer,
+                                label: "Pace",
+                                valueWidget: Text(
+                                  _pace,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: textNavy,
+                                  ),
+                                ),
+                                onEdit: _editPace,
+                              ),
+                              _buildDivider(),
+
+                              // Akomodasi
+                              _buildSummaryRow(
+                                icon: Icons.hotel_rounded,
+                                iconColor: primaryBlue,
+                                iconBgColor: surfaceContainer,
+                                label: "Akomodasi",
+                                valueWidget: Text(
+                                  _accommodation,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: textNavy,
+                                  ),
+                                ),
+                                onEdit: _editAccommodation,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Ticket Perforation Footer Accent
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          decoration: const BoxDecoration(
+                            color: surfaceLow,
+                            borderRadius: BorderRadius.vertical(
+                                bottom: Radius.circular(16)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(
+                                    Icons.verified_rounded,
+                                    size: 14,
+                                    color: textSlate,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    "Estimasi optimasi rute 98.4%",
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: textSlate,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                ticketCode,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryBlue,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Floating / Sticky CTA Button ("Buat Itinerary Saya")
                   SizedBox(
                     width: double.infinity,
-                    height: 56,
+                    height: 50,
                     child: ElevatedButton(
                       onPressed: _isGenerating ? null : _generateItinerary,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryBlue,
                         foregroundColor: Colors.white,
                         elevation: 4,
-                        shadowColor: primaryBlue.withValues(alpha: 0.3),
+                        shadowColor: primaryBlue.withValues(alpha: 0.35),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(25),
                         ),
                       ),
                       child: _isGenerating
@@ -1304,18 +1858,18 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 SizedBox(
-                                  width: 22,
-                                  height: 22,
+                                  width: 18,
+                                  height: 18,
                                   child: CircularProgressIndicator(
                                     color: Colors.white,
                                     strokeWidth: 2.5,
                                   ),
                                 ),
-                                SizedBox(width: 12),
+                                SizedBox(width: 8),
                                 Text(
-                                  "Menyusun Perjalanan AI...",
+                                  "Meramu Perjalananmu...",
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -1324,87 +1878,46 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                           : const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
+                                Icon(Icons.auto_awesome_rounded,
+                                    color: warmYellow, size: 18),
+                                SizedBox(width: 8),
                                 Text(
                                   "Buat Itinerary Saya",
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.3,
                                   ),
                                 ),
-                                SizedBox(width: 8),
-                                Icon(Icons.auto_awesome_rounded, size: 20),
                               ],
                             ),
                     ),
                   ),
-                  const SizedBox(height: 120),
+                  const SizedBox(height: 6),
+                  const Center(
+                    child: Text(
+                      "AI Tride akan meracik jadwal, rute jalan, & estimasi budget.",
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: textSlate,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
           ),
         ],
       ),
-
-      // Integrated Bottom Navigation Bar
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.95),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: SizedBox(
-            height: 64,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(
-                  icon: Icons.home_rounded,
-                  label: "Home",
-                  isSelected: false,
-                  onTap: () => _onNavTapped(0),
-                ),
-                _buildNavItem(
-                  icon: Icons.explore_rounded,
-                  label: "Explore",
-                  isSelected: false,
-                  onTap: () => _onNavTapped(1),
-                ),
-                _buildNavItem(
-                  icon: Icons.luggage_rounded,
-                  label: "Trips",
-                  isSelected: true,
-                  onTap: () => _onNavTapped(2),
-                ),
-                _buildNavItem(
-                  icon: Icons.account_balance_wallet_rounded,
-                  label: "Budget",
-                  isSelected: false,
-                  onTap: () => _onNavTapped(3),
-                ),
-                _buildNavItem(
-                  icon: Icons.person_outline_rounded,
-                  label: "Profile",
-                  isSelected: false,
-                  onTap: () => _onNavTapped(4),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 
-  Widget _buildSummaryItem({
+  Widget _buildSummaryRow({
     required IconData icon,
-    required Color iconBgColor,
     required Color iconColor,
+    required Color iconBgColor,
     required String label,
     required Widget valueWidget,
     required VoidCallback onEdit,
@@ -1413,12 +1926,15 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
-          child: Icon(icon, color: iconColor, size: 20),
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: iconBgColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: iconColor, size: 16),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1426,9 +1942,10 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
               Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
                   color: Color(0xFF64748B),
+                  letterSpacing: 0.3,
                 ),
               ),
               const SizedBox(height: 2),
@@ -1436,20 +1953,19 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
             ],
           ),
         ),
-        InkWell(
+        GestureDetector(
           onTap: onEdit,
-          borderRadius: BorderRadius.circular(8),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: const Color(0xFF004AC6).withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: const Text(
               "Ubah",
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
                 color: Color(0xFF004AC6),
               ),
             ),
@@ -1460,41 +1976,11 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
   }
 
   Widget _buildDivider() {
-    return Padding(
-      padding: const EdgeInsets.only(left: 54, top: 12, bottom: 12),
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 8),
       child: Divider(
         height: 1,
-        thickness: 1,
-        color: const Color(0xFFC3C6D7).withValues(alpha: 0.3),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    const Color primaryBlue = Color(0xFF004AC6);
-    const Color textSlate = Color(0xFF64748B);
-
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: isSelected ? primaryBlue : textSlate, size: 24),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              color: isSelected ? primaryBlue : textSlate,
-            ),
-          ),
-        ],
+        color: Color(0xFFE1E2ED),
       ),
     );
   }

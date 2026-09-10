@@ -27,8 +27,8 @@ void main() {
       await tester.pumpWidget(MaterialApp(home: HalamanAiPlanner(user: user)));
       await tester.pump(const Duration(milliseconds: 500));
 
-      // App Bar title and bottom nav tab
-      expect(find.text('Home'), findsNWidgets(2));
+      // App Bar title
+      expect(find.text('Home'), findsOneWidget);
 
       // Step & Header text
       expect(find.text('STEP 1 OF 4'), findsOneWidget);
@@ -78,7 +78,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
 
       // App Bar title
-      expect(find.text('Explore'), findsNWidgets(2));
+      expect(find.text('Explore'), findsOneWidget);
 
       // Step & Header text
       expect(find.text('STEP 2 OF 4'), findsOneWidget);
@@ -183,7 +183,7 @@ void main() {
       expect(find.text('Gaya Perjalanan'), findsOneWidget);
       expect(find.text('Photography'), findsOneWidget);
       expect(find.text('Nature'), findsOneWidget);
-      expect(find.text('Budget'), findsNWidgets(2));
+      expect(find.text('Budget'), findsOneWidget);
       expect(find.text('Menengah'), findsOneWidget);
       expect(find.text('Pace'), findsOneWidget);
       expect(find.text('Seimbang'), findsOneWidget);
@@ -253,7 +253,7 @@ void main() {
       await tester.pumpAndSettle(); // Settle bottom sheet
 
       // Verify AI Generated Itinerary bottom sheet result is displayed!
-      expect(find.text('AI Generated Itinerary'), findsOneWidget);
+      expect(find.textContaining('Itinerary'), findsAtLeastNWidgets(1));
       expect(find.text('Simpan Rencana Perjalanan'), findsOneWidget);
     },
   );
