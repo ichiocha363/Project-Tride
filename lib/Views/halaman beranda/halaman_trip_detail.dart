@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:project_tride/Database/trip_model.dart';
 import 'package:project_tride/Models/user_model.dart';
-import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
-import '../halaman budget/halaman_budget.dart';
-import '../halaman explore/halaman_jelajah.dart';
+import 'package:project_tride/Services/trip_service.dart';
 import '../halaman profile/halaman_profil.dart';
+import '../halaman_utama.dart';
 import 'halaman_beranda.dart';
 
 class HalamanTripDetail extends StatefulWidget {
   final UserModel? user;
+  final TripModel? trip;
   final String title;
   final String dateRange;
   final String status;
@@ -24,6 +25,7 @@ class HalamanTripDetail extends StatefulWidget {
   const HalamanTripDetail({
     super.key,
     this.user,
+    this.trip,
     this.title = 'Bali Escape',
     this.dateRange = '12 - 16 Sep 2024',
     this.status = 'Confirmed',
@@ -45,6 +47,15 @@ class HalamanTripDetail extends StatefulWidget {
 
 class _HalamanTripDetailState extends State<HalamanTripDetail> {
   late int _currentNavIndex;
+  TripModel? _trip;
+  late String _title;
+  late String _dateRange;
+  late String _status;
+  late String _countdown;
+  late String _imageUrl;
+  late int _budget;
+  late int _spentBudget;
+  List<Map<String, dynamic>>? _itineraryDays;
 
   // Stitch Design Theme Colors
   static const Color primaryBlue = Color(0xFF0056D2);
@@ -60,53 +71,74 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
   void initState() {
     super.initState();
     _currentNavIndex = widget.isPlanning ? 2 : 2;
+    _trip = widget.trip;
+    if (_trip != null) {
+      _title = _trip!.tripName;
+      _dateRange = _trip!.startDate.isNotEmpty
+          ? '${_trip!.startDate} - ${_trip!.endDate}'
+          : widget.dateRange;
+      _status = _trip!.status.isNotEmpty ? _trip!.status : widget.status;
+      _imageUrl = _trip!.imageUrl ?? widget.imageUrl;
+      _budget = _trip!.budget;
+      _spentBudget = _trip!.spentBudget;
+      _countdown = _calculateCountdown(_trip!.startDate);
+      _itineraryDays = _trip!.itineraryDays ?? widget.itineraryDays;
+    } else {
+      _title = widget.title;
+      _dateRange = widget.dateRange;
+      _status = widget.status;
+      _imageUrl = widget.imageUrl;
+      _budget = 10000000;
+      _spentBudget = 4500000;
+      _countdown = widget.countdown;
+      _itineraryDays = widget.itineraryDays;
+    }
+  }
+
+  String _calculateCountdown(String startStr) {
+    try {
+      final start = DateTime.parse(startStr);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final tripStart = DateTime(start.year, start.month, start.day);
+      final diff = tripStart.difference(today).inDays;
+      if (diff < 0) return 'Sedang Berlangsung';
+      if (diff == 0) return 'Hari Ini';
+      if (diff == 1) return 'Besok';
+      if (diff < 7) return '$diff Hari';
+      final weeks = (diff / 7).round();
+      return '$weeks Minggu';
+    } catch (_) {
+      return widget.countdown;
+    }
   }
 
   void _onNavTapped(int index) {
     if (index == _currentNavIndex) return;
 
-    switch (index) {
-      case 0:
+    if (index == 0) {
+      if (Navigator.canPop(context)) {
+        Navigator.popUntil(context, (route) => route.isFirst);
+      } else {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HalamanBeranda(user: widget.user),
+            builder: (context) =>
+                HalamanUtama(user: widget.user, initialTab: 0),
           ),
         );
-        break;
-      case 1:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanJelajah(user: widget.user),
-          ),
-        );
-        break;
-      case 2:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanAiPlanner(user: widget.user),
-          ),
-        );
-        break;
-      case 3:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanBudget(user: widget.user),
-          ),
-        );
-        break;
-      case 4:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanProfil(user: widget.user),
-          ),
-        );
-        break;
+      }
+      return;
     }
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            HalamanUtama(user: widget.user, initialTab: index),
+      ),
+      (route) => false,
+    );
   }
 
   List<Map<String, dynamic>> _getDefaultItinerary() {
@@ -176,9 +208,19 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
     ];
   }
 
+  String _formatNumber(num value) {
+    return value.toInt().toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final days = widget.itineraryDays ?? _getDefaultItinerary();
+    final rawDays = _itineraryDays ?? widget.itineraryDays;
+    final List<Map<String, dynamic>> days = (rawDays != null && rawDays.isNotEmpty)
+        ? rawDays
+        : (widget.trip == null ? _getDefaultItinerary() : <Map<String, dynamic>>[]);
 
     return Scaffold(
       backgroundColor: backgroundLight,
@@ -278,7 +320,7 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
               const Icon(Icons.language_rounded, color: primaryBlue, size: 22),
               const SizedBox(width: 6),
               const Text(
-                'EXPLORE',
+                'TRIP DETAIL',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -289,35 +331,48 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
             ],
           ),
 
-          // User Profile Avatar with Error Fallback
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => HalamanProfil(user: widget.user),
+          Row(
+            children: [
+              if (_trip?.id != null)
+                IconButton(
+                  tooltip: 'Hapus Trip',
+                  onPressed: _confirmDeleteTrip,
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: Colors.redAccent,
+                    size: 22,
+                  ),
                 ),
-              );
-            },
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: SizedBox(
-                width: 36,
-                height: 36,
-                child: Image.network(
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: primaryBlue,
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 20,
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => HalamanProfil(user: widget.user),
+                    ),
+                  );
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Image.network(
+                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: primaryBlue,
+                        child: const Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -343,7 +398,7 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
           children: [
             Positioned.fill(
               child: Image.network(
-                widget.imageUrl,
+                _imageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
@@ -376,7 +431,7 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.title,
+                      _title,
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -386,7 +441,7 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      widget.dateRange,
+                      _dateRange,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -455,7 +510,7 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      widget.status,
+                      _status,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -483,7 +538,7 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      widget.countdown,
+                      _countdown,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -501,6 +556,20 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
   }
 
   Widget _buildBudgetSnapshotCard() {
+    final spentDisplay = _trip != null
+        ? 'Rp ${_formatNumber(_trip!.spentBudget)}'
+        : widget.spentBudget;
+    final totalDisplay = _trip != null
+        ? 'Rp ${_formatNumber(_trip!.budget)}'
+        : widget.totalBudget;
+    final remainingVal = _trip != null ? _trip!.budget - _trip!.spentBudget : 0;
+    final remainingDisplay = _trip != null
+        ? 'Sisa Rp ${_formatNumber(remainingVal.clamp(0, 999999999999))}'
+        : widget.remainingBudget;
+    final progress = _budget > 0
+        ? (_spentBudget / _budget).clamp(0.0, 1.0)
+        : widget.budgetProgress;
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -539,7 +608,7 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
                 ],
               ),
               Text(
-                '${widget.spentBudget} / ${widget.totalBudget}',
+                '$spentDisplay / $totalDisplay',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -554,7 +623,7 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
-              value: widget.budgetProgress,
+              value: progress,
               minHeight: 8,
               backgroundColor: Colors.white.withAlpha(160),
               valueColor: const AlwaysStoppedAnimation<Color>(primaryBlue),
@@ -567,7 +636,7 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
           Align(
             alignment: Alignment.centerRight,
             child: Text(
-              widget.remainingBudget,
+              remainingDisplay,
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -581,15 +650,104 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
   }
 
   Widget _buildItineraryTimeline(List<Map<String, dynamic>> days) {
+    if (days.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade100),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(6),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: primaryBlue.withAlpha(20),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.calendar_today_rounded,
+                color: primaryBlue,
+                size: 28,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Belum Ada Jadwal Itinerary',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: textDark,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Jadwal aktivitas perjalanan akan muncul di sini setelah dibuat.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: textMuted,
+                height: 1.3,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: days.length,
       itemBuilder: (context, dayIndex) {
         final dayData = days[dayIndex];
-        final String dayNumber = dayData['dayNumber'] ?? 'D 01';
-        final String dayDate = dayData['dayDate'] ?? 'Hari 1';
-        final List activities = dayData['activities'] ?? [];
+
+        // Safe day number parsing (e.g. D 01, D 02)
+        String dayNumber = 'D ${(dayIndex + 1).toString().padLeft(2, '0')}';
+        if (dayData['dayNumber'] != null &&
+            dayData['dayNumber'].toString().isNotEmpty) {
+          dayNumber = dayData['dayNumber'].toString();
+        } else if (dayData['day'] != null) {
+          final match = RegExp(r'\d+').firstMatch(dayData['day'].toString());
+          if (match != null) {
+            dayNumber = 'D ${match.group(0)!.padLeft(2, '0')}';
+          } else {
+            dayNumber = dayData['day'].toString();
+          }
+        }
+
+        // Safe day date/title parsing
+        String dayDate = 'Hari ${dayIndex + 1}';
+        if (dayData['dayDate'] != null &&
+            dayData['dayDate'].toString().isNotEmpty) {
+          dayDate = dayData['dayDate'].toString();
+        } else if (dayData['title'] != null &&
+            dayData['title'].toString().isNotEmpty) {
+          final dayPrefix =
+              dayData['day'] != null ? '${dayData['day']} · ' : '';
+          dayDate = '$dayPrefix${dayData['title']}';
+        } else if (dayData['date'] != null &&
+            dayData['date'].toString().isNotEmpty) {
+          dayDate = dayData['date'].toString();
+        } else if (dayData['day'] != null &&
+            dayData['day'].toString().isNotEmpty) {
+          dayDate = dayData['day'].toString();
+        }
+
+        // Safe activities list extraction
+        final dynamic rawActivities =
+            dayData['activities'] ?? dayData['schedule'] ?? dayData['items'];
+        final List activitiesList =
+            rawActivities is List ? rawActivities : [];
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -616,12 +774,16 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  dayDate,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: textDark,
+                Expanded(
+                  child: Text(
+                    dayDate,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: textDark,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -629,140 +791,394 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
 
             const SizedBox(height: 12),
 
-            // Timeline Items
-            ...List.generate(activities.length, (actIndex) {
-              final act = activities[actIndex];
-              final isLastInDay = actIndex == activities.length - 1;
+            if (activitiesList.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(left: 16, bottom: 16),
+                child: Text(
+                  'Tidak ada aktivitas tercatat untuk hari ini.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                    color: textMuted,
+                  ),
+                ),
+              )
+            else
+              ...List.generate(activitiesList.length, (actIndex) {
+                final act = _ParsedActivity.fromDynamic(
+                  activitiesList[actIndex],
+                  actIndex,
+                );
+                final isLastInDay = actIndex == activitiesList.length - 1;
 
-              return IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Left Timeline Connector & Dot Indicator
-                    SizedBox(
-                      width: 40,
-                      child: Column(
-                        children: [
-                          Container(
-                            margin: const EdgeInsets.only(top: 18),
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: (act['isCompleted'] ?? false)
-                                  ? primaryBlue
-                                  : Colors.grey.shade300,
-                              border: Border.all(
-                                color: (act['isCompleted'] ?? false)
-                                    ? primaryBlue.withAlpha(60)
-                                    : Colors.transparent,
-                                width: 3,
+                return IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Left Timeline Connector & Dot Indicator
+                      SizedBox(
+                        width: 40,
+                        child: Column(
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.only(top: 18),
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: act.isCompleted
+                                    ? primaryBlue
+                                    : Colors.grey.shade300,
+                                border: Border.all(
+                                  color: act.isCompleted
+                                      ? primaryBlue.withAlpha(60)
+                                      : Colors.transparent,
+                                  width: 3,
+                                ),
                               ),
                             ),
-                          ),
-                          Expanded(
-                            child: Container(
-                              width: 2,
-                              color: isLastInDay
-                                  ? timelineLineColor.withAlpha(100)
-                                  : timelineLineColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Right Activity Card
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 14),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: cardBg,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.grey.shade100,
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(6),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                            Expanded(
+                              child: Container(
+                                width: 2,
+                                color: isLastInDay
+                                    ? timelineLineColor.withAlpha(100)
+                                    : timelineLineColor,
+                              ),
                             ),
                           ],
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Top Row: Icon + Time + Cost
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      act['icon'] as IconData? ??
-                                          Icons.event_note_rounded,
-                                      size: 16,
-                                      color: textMuted,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      act['time'] ?? '00:00',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
+                      ),
+
+                      // Right Activity Card
+                      Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 14),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.grey.shade100,
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withAlpha(6),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Top Row: Icon + Time + Cost
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        act.icon,
+                                        size: 16,
                                         color: textMuted,
                                       ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        act.time,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    act.cost,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: textDark,
                                     ),
-                                  ],
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Activity Title
+                              Text(
+                                act.title,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: textDark,
                                 ),
+                              ),
+
+                              if (act.subtitle != null &&
+                                  act.subtitle!.isNotEmpty) ...[
+                                const SizedBox(height: 4),
                                 Text(
-                                  act['cost'] ?? 'Rp 0',
+                                  act.subtitle!,
                                   style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: textDark,
+                                    fontSize: 13,
+                                    color: textMuted,
+                                    height: 1.3,
                                   ),
                                 ),
                               ],
-                            ),
-                            const SizedBox(height: 8),
-
-                            // Activity Title
-                            Text(
-                              act['title'] ?? '',
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: textDark,
-                              ),
-                            ),
-
-                            if (act['subtitle'] != null &&
-                                (act['subtitle'] as String).isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                act['subtitle'],
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: textMuted,
-                                  height: 1.3,
-                                ),
-                              ),
                             ],
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            }),
+                    ],
+                  ),
+                );
+              }),
 
             const SizedBox(height: 12),
           ],
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteTrip() {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+            SizedBox(width: 10),
+            Text(
+              "Hapus Trip",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ],
+        ),
+        content: Text(
+          "Apakah Anda yakin ingin menghapus rencana perjalanan '$_title'?",
+          style: const TextStyle(fontSize: 14, color: textDark),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text("Batal"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              if (_trip?.id != null) {
+                final success = await TripService.instance.deleteTrip(_trip!.id!);
+                if (mounted) {
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Trip berhasil dihapus")),
+                    );
+                    Navigator.pop(context, true);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Gagal menghapus trip. Coba lagi."),
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text("Hapus"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openEditTripDialog() {
+    final titleController = TextEditingController(text: _title);
+    final budgetController =
+        TextEditingController(text: _budget > 0 ? _budget.toString() : '');
+    String tempStatus = _status;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (bottomSheetCtx) {
+        return StatefulBuilder(
+          builder: (modalCtx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Edit Rencana Trip",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: textDark,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(modalCtx),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: titleController,
+                    decoration: InputDecoration(
+                      labelText: "Nama Trip",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.edit_road_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: budgetController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: "Total Budget (Rp)",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon:
+                          const Icon(Icons.account_balance_wallet_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: ['upcoming', 'ongoing', 'completed', 'cancelled']
+                            .contains(tempStatus.toLowerCase())
+                        ? tempStatus.toLowerCase()
+                        : 'upcoming',
+                    decoration: InputDecoration(
+                      labelText: "Status Trip",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.flag_rounded),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'upcoming',
+                        child: Text('Upcoming'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'ongoing',
+                        child: Text('Ongoing'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'completed',
+                        child: Text('Completed'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'cancelled',
+                        child: Text('Cancelled'),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setModalState(() {
+                          tempStatus = val;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final newTitle = titleController.text.trim();
+                        final newBudget =
+                            int.tryParse(budgetController.text.trim()) ??
+                            _budget;
+                        if (newTitle.isEmpty) return;
+
+                        if (_trip != null && _trip!.id != null) {
+                          final updated = _trip!.copyWith(
+                            tripName: newTitle,
+                            budget: newBudget,
+                            status: tempStatus,
+                          );
+                          final ok =
+                              await TripService.instance.updateTrip(updated);
+                          if (ok) {
+                            setState(() {
+                              _trip = updated;
+                              _title = newTitle;
+                              _budget = newBudget;
+                              _status = tempStatus;
+                            });
+                          }
+                        } else {
+                          setState(() {
+                            _title = newTitle;
+                            _budget = newBudget;
+                            _status = tempStatus;
+                          });
+                        }
+
+                        if (modalCtx.mounted) {
+                          Navigator.pop(modalCtx);
+                        }
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "Rencana trip berhasil diperbarui!",
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        "Simpan Perubahan",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -782,14 +1198,7 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Membuka editor rencana trip...'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        },
+        onPressed: _openEditTripDialog,
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryBlue,
           minimumSize: const Size(double.infinity, 50),
@@ -892,5 +1301,160 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
         ],
       ),
     );
+  }
+}
+
+/// Helper model untuk parsing aktivitas harian secara aman dari berbagai tipe data (String / Map).
+class _ParsedActivity {
+  final String title;
+  final String? subtitle;
+  final String time;
+  final String cost;
+  final bool isCompleted;
+  final IconData icon;
+
+  _ParsedActivity({
+    required this.title,
+    this.subtitle,
+    required this.time,
+    required this.cost,
+    required this.isCompleted,
+    required this.icon,
+  });
+
+  factory _ParsedActivity.fromDynamic(dynamic act, int index) {
+    if (act is Map) {
+      final title = act['title']?.toString() ??
+          act['name']?.toString() ??
+          act['activity']?.toString() ??
+          act['description']?.toString() ??
+          'Aktivitas ${index + 1}';
+      final subtitle = act['subtitle']?.toString() ??
+          act['desc']?.toString() ??
+          act['notes']?.toString();
+      final time = act['time']?.toString() ?? _defaultTimeForIndex(index);
+      final cost = act['cost']?.toString() ?? 'Rp 0';
+      final isCompleted = act['isCompleted'] == true ||
+          act['completed'] == true ||
+          act['is_completed'] == true;
+
+      IconData icon = Icons.place_rounded;
+      if (act['icon'] is IconData) {
+        icon = act['icon'] as IconData;
+      } else {
+        icon = _iconForText('$title ${subtitle ?? ''}');
+      }
+
+      return _ParsedActivity(
+        title: title,
+        subtitle: subtitle != null && subtitle.isNotEmpty ? subtitle : null,
+        time: time,
+        cost: cost,
+        isCompleted: isCompleted,
+        icon: icon,
+      );
+    } else if (act is String) {
+      final text = act.trim();
+      return _ParsedActivity(
+        title: text.isNotEmpty ? text : 'Aktivitas ${index + 1}',
+        subtitle: null,
+        time: _defaultTimeForIndex(index),
+        cost: 'Rp 0',
+        isCompleted: false,
+        icon: _iconForText(text),
+      );
+    } else {
+      final text = act?.toString() ?? 'Aktivitas ${index + 1}';
+      return _ParsedActivity(
+        title: text,
+        subtitle: null,
+        time: _defaultTimeForIndex(index),
+        cost: 'Rp 0',
+        isCompleted: false,
+        icon: Icons.event_note_rounded,
+      );
+    }
+  }
+
+  static String _defaultTimeForIndex(int index) {
+    const times = ['09:00', '12:30', '15:30', '18:30', '20:00'];
+    return times[index % times.length];
+  }
+
+  static IconData _iconForText(String text) {
+    final lower = text.toLowerCase();
+    if (lower.contains('bandara') ||
+        lower.contains('flight') ||
+        lower.contains('pesawat') ||
+        lower.contains('airport') ||
+        lower.contains('penjemputan') ||
+        lower.contains('transfer')) {
+      return Icons.flight_land_rounded;
+    }
+    if (lower.contains('makan') ||
+        lower.contains('kuliner') ||
+        lower.contains('resto') ||
+        lower.contains('sarapan') ||
+        lower.contains('siang') ||
+        lower.contains('malam') ||
+        lower.contains('dinner') ||
+        lower.contains('lunch') ||
+        lower.contains('breakfast') ||
+        lower.contains('coffee') ||
+        lower.contains('kafe') ||
+        lower.contains('cafe')) {
+      return Icons.restaurant_rounded;
+    }
+    if (lower.contains('hotel') ||
+        lower.contains('resort') ||
+        lower.contains('villa') ||
+        lower.contains('check-in') ||
+        lower.contains('homestay') ||
+        lower.contains('hostel') ||
+        lower.contains('penginapan') ||
+        lower.contains('istirahat')) {
+      return Icons.hotel_rounded;
+    }
+    if (lower.contains('sunset') ||
+        lower.contains('pantai') ||
+        lower.contains('beach') ||
+        lower.contains('laut') ||
+        lower.contains('sunrise')) {
+      return Icons.wb_twilight_rounded;
+    }
+    if (lower.contains('foto') ||
+        lower.contains('photo') ||
+        lower.contains('kamera') ||
+        lower.contains('spot ikonik') ||
+        lower.contains('panoramik')) {
+      return Icons.camera_alt_rounded;
+    }
+    if (lower.contains('belanja') ||
+        lower.contains('oleh-oleh') ||
+        lower.contains('souvenir') ||
+        lower.contains('pasar') ||
+        lower.contains('mall')) {
+      return Icons.shopping_bag_rounded;
+    }
+    if (lower.contains('alam') ||
+        lower.contains('gunung') ||
+        lower.contains('hutan') ||
+        lower.contains('taman') ||
+        lower.contains('curug') ||
+        lower.contains('air terjun') ||
+        lower.contains('trekking') ||
+        lower.contains('nature')) {
+      return Icons.nature_people_rounded;
+    }
+    if (lower.contains('budaya') ||
+        lower.contains('candi') ||
+        lower.contains('museum') ||
+        lower.contains('istana') ||
+        lower.contains('keraton') ||
+        lower.contains('pura') ||
+        lower.contains('temple')) {
+      return Icons.museum_rounded;
+    }
+    return Icons.place_rounded;
   }
 }

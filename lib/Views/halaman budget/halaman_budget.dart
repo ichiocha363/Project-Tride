@@ -1,22 +1,30 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:project_tride/Constants/app_colors.dart';
-import 'package:project_tride/Database/db_helper.dart';
 import 'package:project_tride/Database/expense_model.dart';
+import 'package:project_tride/Database/trip_model.dart';
 import 'package:project_tride/Models/user_model.dart';
+import 'package:project_tride/Services/budget_service.dart';
+import 'package:project_tride/Services/trip_service.dart';
 import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
-import '../halaman beranda/halaman_beranda.dart';
-import '../halaman explore/halaman_jelajah.dart';
 import '../halaman profile/halaman_profil.dart';
+import '../halaman_utama.dart';
 
 class HalamanBudget extends StatefulWidget {
   final UserModel? user;
+  final TripModel? trip;
+  final String? tripId;
   final bool isEmbeddedInShell;
+  final ValueChanged<int>? onSwitchTab;
 
   const HalamanBudget({
     super.key,
     this.user,
+    this.trip,
+    this.tripId,
     this.isEmbeddedInShell = false,
+    this.onSwitchTab,
   });
 
   @override
@@ -24,11 +32,15 @@ class HalamanBudget extends StatefulWidget {
 }
 
 class _HalamanBudgetState extends State<HalamanBudget> {
-  final double _totalBudget = 30000000.0;
+  TripModel? _activeTrip;
+  List<TripModel> _userTrips = [];
+  bool _isLoadingTrips = true;
+  StreamSubscription<List<ExpenseModel>>? _expenseSub;
+  List<ExpenseModel> _expenses = [];
 
   final Map<String, Map<String, dynamic>> _categoryData = {
     'Penginapan': {
-      'subtitle': '4 malam menginap',
+      'subtitle': 'Akomodasi & Hotel',
       'icon': Icons.bed_rounded,
       'color': const Color(0xFF00668A),
       'bgColor': const Color(0xFFC4E7FF),
@@ -40,95 +52,280 @@ class _HalamanBudgetState extends State<HalamanBudget> {
       'bgColor': const Color(0xFFFFDBCD),
     },
     'Transportasi': {
-      'subtitle': 'Tiket & Taksi',
+      'subtitle': 'Tiket & Kendaraan',
       'icon': Icons.train_rounded,
       'color': const Color(0xFF004AC6),
       'bgColor': const Color(0xFFDBE1FF),
     },
   };
 
-  List<ExpenseModel> _dbExpenses = [];
-  bool _isLoading = false;
-
   @override
   void initState() {
     super.initState();
-    _loadExpenses();
+    _initTripData();
   }
 
-  Future<void> _loadExpenses() async {
+  @override
+  void dispose() {
+    _expenseSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initTripData() async {
     setState(() {
-      _isLoading = true;
+      _isLoadingTrips = true;
     });
 
-    try {
-      await DbHelper.instance.ensureDefaultTripExists(1);
-      final list = await DbHelper.instance.getAllExpenses();
-      if (list.isEmpty) {
-        // Seed initial default expenses to SQLite database
-        final defaults = [
-          ExpenseModel(
-            tripId: 1,
-            category: 'Kuliner',
-            amount: 185000,
-            date: 'Hari ini, 19:30',
-            description: 'Ichiran Ramen',
-          ),
-          ExpenseModel(
-            tripId: 1,
-            category: 'Penginapan',
-            amount: 8500000,
-            date: 'Kemarin',
-            description: 'Ryokan Kyoto Stay',
-          ),
-          ExpenseModel(
-            tripId: 1,
-            category: 'Transportasi',
-            amount: 2250000,
-            date: '12 Okt 2026',
-            description: 'JR Pass 7-Day',
-          ),
-          ExpenseModel(
-            tripId: 1,
-            category: 'Kuliner',
-            amount: 2215000,
-            date: '13 Okt 2026',
-            description: 'Gion Sushi Dinner',
-          ),
-        ];
+    if (widget.trip != null) {
+      _activeTrip = widget.trip;
+      _subscribeToExpenses(_activeTrip!.id);
+      _loadAllUserTrips();
+      if (mounted) {
+        setState(() {
+          _isLoadingTrips = false;
+        });
+      }
+      return;
+    }
 
-        for (final exp in defaults) {
-          await DbHelper.instance.insertExpense(exp);
+    try {
+      final trips = await TripService.instance.getTrips();
+      if (trips.isNotEmpty) {
+        _userTrips = trips;
+        if (widget.tripId != null && widget.tripId!.isNotEmpty) {
+          _activeTrip = trips.firstWhere(
+            (t) => t.id == widget.tripId,
+            orElse: () => trips.first,
+          );
+        } else {
+          final upcoming = await TripService.instance.getUpcomingTrip();
+          _activeTrip = upcoming ?? trips.first;
         }
-        _dbExpenses = await DbHelper.instance.getAllExpenses();
+        _subscribeToExpenses(_activeTrip?.id);
       } else {
-        _dbExpenses = list;
+        _userTrips = [];
+        _activeTrip = null;
+        _expenses = [];
       }
     } catch (e) {
-      debugPrint("Error loading expenses: $e");
+      debugPrint('[HalamanBudget] Error initTripData: $e');
     }
 
     if (mounted) {
       setState(() {
-        _isLoading = false;
+        _isLoadingTrips = false;
       });
     }
   }
 
-  double get _totalSpent {
-    return _dbExpenses.fold(
-      0.0,
-      (sum, item) => sum + item.amount,
+  Future<void> _loadAllUserTrips() async {
+    try {
+      final trips = await TripService.instance.getTrips();
+      if (mounted && trips.isNotEmpty) {
+        setState(() {
+          _userTrips = trips;
+        });
+      }
+    } catch (_) {}
+  }
+
+  void _subscribeToExpenses(String? tripId) {
+    _expenseSub?.cancel();
+    if (tripId == null || tripId.isEmpty) {
+      setState(() {
+        _expenses = [];
+      });
+      return;
+    }
+
+    _expenseSub = BudgetService.instance
+        .streamExpenses(tripId)
+        .listen(
+          (data) {
+            if (mounted) {
+              setState(() {
+                _expenses = data;
+              });
+            }
+          },
+          onError: (err) {
+            debugPrint('[HalamanBudget] Stream expense error: $err');
+          },
+        );
+  }
+
+  void _switchActiveTrip(TripModel trip) {
+    if (_activeTrip?.id == trip.id) return;
+    setState(() {
+      _activeTrip = trip;
+    });
+    _subscribeToExpenses(trip.id);
+  }
+
+  double get _totalBudget => (_activeTrip?.budget ?? 0).toDouble();
+
+  double get _totalSpent =>
+      BudgetService.instance.calculateTotalSpent(_expenses);
+
+  double get _remainingBudget => BudgetService.instance
+      .calculateRemainingBudget(_totalBudget, _totalSpent);
+
+  double getCategorySpent(String category) {
+    final catMap = BudgetService.instance.calculateCategorySpent(_expenses);
+    return catMap[category] ?? 0.0;
+  }
+
+  int getCategoryPercentage(String category) {
+    final pctMap = BudgetService.instance.calculateCategoryPercentages(
+      _expenses,
+    );
+    return (pctMap[category] ?? 0.0).round();
+  }
+
+  Map<String, dynamic> _getCategoryStyle(String category) {
+    if (_categoryData.containsKey(category)) {
+      return _categoryData[category]!;
+    }
+    return {
+      'subtitle': 'Pengeluaran umum',
+      'icon': Icons.receipt_long_rounded,
+      'color': AppColors.primaryDeep,
+      'bgColor': const Color(0xFFDBE1FF),
+    };
+  }
+
+  void _showSelectTripModal() {
+    if (_userTrips.isEmpty) return;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(
+                      Icons.flight_takeoff_rounded,
+                      color: AppColors.textPrimary,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      "Pilih Perjalanan Aktif",
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: _userTrips.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final trip = _userTrips[index];
+                      final isSelected = trip.id == _activeTrip?.id;
+
+                      return ListTile(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _switchActiveTrip(trip);
+                        },
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: isSelected
+                                ? AppColors.primaryDeep
+                                : AppColors.surfaceVariant.withValues(
+                                    alpha: 0.6,
+                                  ),
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        tileColor: isSelected
+                            ? const Color(0xFFC4E7FF).withValues(alpha: 0.3)
+                            : Colors.grey.shade50,
+                        leading: CircleAvatar(
+                          backgroundColor: AppColors.surfaceVariant,
+                          backgroundImage:
+                              trip.imageUrl != null && trip.imageUrl!.isNotEmpty
+                              ? NetworkImage(trip.imageUrl!)
+                              : null,
+                          child: trip.imageUrl == null || trip.imageUrl!.isEmpty
+                              ? const Icon(
+                                  Icons.travel_explore,
+                                  color: AppColors.primaryDeep,
+                                )
+                              : null,
+                        ),
+                        title: Text(
+                          trip.tripName,
+                          style: const TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        subtitle: Text(
+                          "Anggaran: ${_formatCurrency(trip.budget.toDouble())}",
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(
+                                Icons.check_circle_rounded,
+                                color: AppColors.primaryDeep,
+                              )
+                            : const Icon(
+                                Icons.chevron_right_rounded,
+                                color: Colors.grey,
+                              ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  double getCategorySpent(String category) {
-    return _dbExpenses
-        .where((item) => item.category == category)
-        .fold(0.0, (sum, item) => sum + item.amount);
-  }
-
   void _showAddExpenseDialog() {
+    if (_activeTrip == null || _activeTrip!.id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            "Silakan buat atau pilih perjalanan terlebih dahulu.",
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
     final titleC = TextEditingController();
     final amountC = TextEditingController();
     String selectedCategory = _categoryData.keys.first;
@@ -164,7 +361,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                     controller: titleC,
                     decoration: InputDecoration(
                       labelText: "Nama Transaksi",
-                      hintText: "Misal: Ichiran Ramen",
+                      hintText: "Misal: Tiket Masuk Museum",
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -239,32 +436,55 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                       return;
                     }
 
+                    final now = DateTime.now();
+                    final dateStr =
+                        "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}";
+
                     final newExp = ExpenseModel(
-                      tripId: 1,
+                      tripId: _activeTrip!.id!,
                       category: selectedCategory,
                       amount: amountVal.toInt(),
-                      date: 'Hari ini',
+                      date: dateStr,
                       description: title,
+                      createdAt: DateTime.now().toIso8601String(),
                     );
 
                     try {
-                      await DbHelper.instance.insertExpense(newExp);
-                      await _loadExpenses();
+                      final res = await BudgetService.instance.addExpense(
+                        _activeTrip!.id!,
+                        newExp,
+                      );
 
                       if (!context.mounted) return;
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text(
-                            "Pengeluaran berhasil ditambahkan!",
+
+                      if (res != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text(
+                              "Pengeluaran berhasil ditambahkan!",
+                            ),
+                            backgroundColor: const Color(0xFF3E9C5D),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          backgroundColor: const Color(0xFF3E9C5D),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text(
+                              "Gagal menyimpan pengeluaran ke Firestore.",
+                            ),
+                            backgroundColor: Colors.redAccent,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      }
                     } catch (e) {
                       debugPrint('Error adding expense: $e');
                       if (!context.mounted) return;
@@ -298,6 +518,8 @@ class _HalamanBudgetState extends State<HalamanBudget> {
   }
 
   void _showEditExpenseDialog(ExpenseModel exp) {
+    if (_activeTrip == null || _activeTrip!.id == null) return;
+
     final titleC = TextEditingController(text: exp.description ?? '');
     final amountC = TextEditingController(text: exp.amount.toString());
     String selectedCategory = _categoryData.containsKey(exp.category)
@@ -414,21 +636,37 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                       category: selectedCategory,
                     );
 
-                    await DbHelper.instance.updateExpense(updated);
-                    await _loadExpenses();
+                    final success = await BudgetService.instance.updateExpense(
+                      _activeTrip!.id!,
+                      updated,
+                    );
 
                     if (!context.mounted) return;
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text("Transaksi berhasil diperbarui!"),
-                        backgroundColor: const Color(0xFF3E9C5D),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text("Transaksi berhasil diperbarui!"),
+                          backgroundColor: const Color(0xFF3E9C5D),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text("Gagal memperbarui transaksi."),
+                          backgroundColor: Colors.redAccent,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0F172A),
@@ -448,7 +686,10 @@ class _HalamanBudgetState extends State<HalamanBudget> {
   }
 
   void _confirmDeleteExpense(ExpenseModel exp) {
-    if (exp.id == null) return;
+    if (exp.id == null || _activeTrip == null || _activeTrip!.id == null) {
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -473,20 +714,36 @@ class _HalamanBudgetState extends State<HalamanBudget> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await DbHelper.instance.deleteExpense(exp.id!);
-              await _loadExpenses();
+              final success = await BudgetService.instance.deleteExpense(
+                _activeTrip!.id!,
+                exp.id!,
+              );
 
               if (!context.mounted) return;
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text("Pengeluaran berhasil dihapus."),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text("Pengeluaran berhasil dihapus."),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                ),
-              );
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text("Gagal menghapus pengeluaran."),
+                    backgroundColor: Colors.redAccent,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
@@ -503,51 +760,47 @@ class _HalamanBudgetState extends State<HalamanBudget> {
   }
 
   void _onNavTapped(int index) {
-    switch (index) {
-      case 0:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanBeranda(user: widget.user),
-          ),
-        );
-        break;
-      case 1:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanJelajah(user: widget.user),
-          ),
-        );
-        break;
-      case 2:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanAiPlanner(user: widget.user),
-          ),
-        );
-        break;
-      case 3:
-        break;
-      case 4:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HalamanProfil(user: widget.user),
-          ),
-        );
-        break;
+    if (index == 3) return;
+
+    if (widget.onSwitchTab != null) {
+      widget.onSwitchTab!(index);
+      return;
     }
+
+    if (index == 0) {
+      if (Navigator.canPop(context)) {
+        Navigator.popUntil(context, (route) => route.isFirst);
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                HalamanUtama(user: widget.user, initialTab: 0),
+          ),
+        );
+      }
+      return;
+    }
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            HalamanUtama(user: widget.user, initialTab: index),
+      ),
+      (route) => false,
+    );
   }
 
   String _formatCurrency(double amount) {
     final int val = amount.round();
-    final formatted = val.toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]}.',
-        );
-    return 'Rp $formatted';
+    final isNegative = val < 0;
+    final absVal = val.abs();
+    final formatted = absVal.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    );
+    return isNegative ? '-Rp $formatted' : 'Rp $formatted';
   }
 
   @override
@@ -560,10 +813,18 @@ class _HalamanBudgetState extends State<HalamanBudget> {
     const Color naturalGreen = Color(0xFF2E7D32);
 
     final double spent = _totalSpent;
-    final double remaining = _totalBudget - spent;
-    final double progress = (_totalBudget > 0)
-        ? (spent / _totalBudget).clamp(0.0, 1.0)
+    final double remaining = _remainingBudget;
+    final double progress = _totalBudget > 0
+        ? (_totalSpent / _totalBudget).clamp(0.0, 1.0)
         : 0.0;
+
+    final tripName =
+        _activeTrip?.tripName ??
+        (_isLoadingTrips ? "Memuat..." : "Belum Ada Trip");
+    final bannerImage =
+        _activeTrip?.imageUrl != null && _activeTrip!.imageUrl!.isNotEmpty
+        ? _activeTrip!.imageUrl!
+        : 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1200&auto=format&fit=crop';
 
     return Scaffold(
       extendBody: true,
@@ -606,7 +867,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                       child: Stack(
                         children: [
                           Image.network(
-                            'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1200&auto=format&fit=crop',
+                            bannerImage,
                             height: 320,
                             width: double.infinity,
                             fit: BoxFit.cover,
@@ -643,7 +904,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                                       color: sandBeige,
                                     ),
                                     const SizedBox(width: 6),
-                                    Text(
+                                    const Text(
                                       "JURNAL PERJALANAN",
                                       style: TextStyle(
                                         fontFamily: 'Inter',
@@ -653,14 +914,57 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                                         letterSpacing: 1.5,
                                       ),
                                     ),
+                                    const Spacer(),
+                                    if (_userTrips.length > 1)
+                                      GestureDetector(
+                                        onTap: _showSelectTripModal,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.25,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.white.withValues(
+                                                alpha: 0.5,
+                                              ),
+                                            ),
+                                          ),
+                                          child: const Row(
+                                            children: [
+                                              Icon(
+                                                Icons.swap_horiz_rounded,
+                                                color: Colors.white,
+                                                size: 16,
+                                              ),
+                                              SizedBox(width: 4),
+                                              Text(
+                                                "Ganti Trip",
+                                                style: TextStyle(
+                                                  fontFamily: 'Inter',
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
-                                const Text(
-                                  "Kyoto Getaway",
-                                  style: TextStyle(
+                                Text(
+                                  tripName,
+                                  style: const TextStyle(
                                     fontFamily: 'Plus Jakarta Sans',
-                                    fontSize: 36,
+                                    fontSize: 32,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                     shadows: [
@@ -671,6 +975,8 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                                       ),
                                     ],
                                   ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 20),
                               ],
@@ -721,13 +1027,17 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                           ),
                           GestureDetector(
                             onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      HalamanProfil(user: widget.user),
-                                ),
-                              );
+                              if (widget.onSwitchTab != null) {
+                                widget.onSwitchTab!(4);
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        HalamanProfil(user: widget.user),
+                                  ),
+                                );
+                              }
                             },
                             child: Container(
                               width: 40,
@@ -843,7 +1153,8 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                                   Expanded(
                                     flex: 5,
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
                                       children: [
                                         const Text(
                                           "SISA ANGGARAN",
@@ -950,6 +1261,75 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                         ),
                       ),
 
+                      // If user has no trip at all
+                      if (!_isLoadingTrips && _activeTrip == null)
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 24),
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: sandBeige.withValues(alpha: 0.6),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              const Icon(
+                                Icons.flight_takeoff_rounded,
+                                size: 48,
+                                color: oceanBlue,
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                "Belum Ada Perjalanan Aktif",
+                                style: TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: textNavy,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                "Buat rencana perjalanan terlebih dahulu di menu AI Planner atau Beranda untuk mulai mengelola anggaran.",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 13,
+                                  color: textSlate,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  if (widget.onSwitchTab != null) {
+                                    widget.onSwitchTab!(2);
+                                  } else {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            HalamanAiPlanner(user: widget.user),
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.add, size: 18),
+                                label: const Text("Buat Rencana Trip"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: textNavy,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
                       // Spending Highlights Section
                       const Text(
                         "Ringkasan Pengeluaran",
@@ -972,9 +1352,7 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                           final key = _categoryData.keys.elementAt(index);
                           final cat = _categoryData[key]!;
                           final catSpent = getCategorySpent(key);
-                          final percentage = _totalSpent > 0
-                              ? ((catSpent / _totalSpent) * 100).round()
-                              : 0;
+                          final percentage = getCategoryPercentage(key);
 
                           return Container(
                             padding: const EdgeInsets.all(18),
@@ -1091,14 +1469,12 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                       ),
                       const SizedBox(height: 16),
 
-                      if (_isLoading)
+                      if (_isLoadingTrips)
                         const Padding(
                           padding: EdgeInsets.all(32),
-                          child: Center(
-                            child: CircularProgressIndicator(),
-                          ),
+                          child: Center(child: CircularProgressIndicator()),
                         )
-                      else if (_dbExpenses.isEmpty)
+                      else if (_expenses.isEmpty)
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(28),
@@ -1123,17 +1499,12 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                         ListView.separated(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _dbExpenses.length,
+                          itemCount: _expenses.length,
                           separatorBuilder: (context, index) =>
                               const SizedBox(height: 12),
                           itemBuilder: (context, index) {
-                            final item = _dbExpenses[index];
-                            final catInfo = _categoryData[item.category] ??
-                                {
-                                  'icon': Icons.receipt_rounded,
-                                  'color': oceanBlue,
-                                  'bgColor': const Color(0xFFDBE1FF),
-                                };
+                            final item = _expenses[index];
+                            final catInfo = _getCategoryStyle(item.category);
 
                             return Container(
                               padding: const EdgeInsets.all(14),
@@ -1173,7 +1544,10 @@ class _HalamanBudgetState extends State<HalamanBudget> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          item.description ?? item.category,
+                                          item.description != null &&
+                                                  item.description!.isNotEmpty
+                                              ? item.description!
+                                              : item.category,
                                           style: const TextStyle(
                                             fontFamily: 'Plus Jakarta Sans',
                                             fontSize: 16,
