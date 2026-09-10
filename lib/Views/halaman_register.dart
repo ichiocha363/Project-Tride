@@ -1,7 +1,10 @@
 import 'dart:ui';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:project_tride/Services/auth_service.dart';
 import 'package:project_tride/Views/halaman_login.dart';
+import 'package:project_tride/Views/halaman_privacy_policy.dart';
+import 'package:project_tride/Views/halaman_terms_of_service.dart';
 
 class HalamanRegister extends StatefulWidget {
   const HalamanRegister({super.key});
@@ -22,13 +25,39 @@ class _HalamanRegisterState extends State<HalamanRegister> {
   bool agreeTerms = false;
   bool isLoading = false;
 
+  late final TapGestureRecognizer _termsRecognizer;
+  late final TapGestureRecognizer _privacyRecognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _termsRecognizer = TapGestureRecognizer()..onTap = _openTermsOfService;
+    _privacyRecognizer = TapGestureRecognizer()..onTap = _openPrivacyPolicy;
+  }
+
   @override
   void dispose() {
     namaC.dispose();
     emailC.dispose();
     passwordC.dispose();
     confirmPasswordC.dispose();
+    _termsRecognizer.dispose();
+    _privacyRecognizer.dispose();
     super.dispose();
+  }
+
+  void _openTermsOfService() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const HalamanTermsOfService()),
+    );
+  }
+
+  void _openPrivacyPolicy() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const HalamanPrivacyPolicy()),
+    );
   }
 
   void _register() async {
@@ -348,37 +377,37 @@ class _HalamanRegisterState extends State<HalamanRegister> {
                               ),
                               const SizedBox(width: 10),
                               Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      agreeTerms = !agreeTerms;
-                                    });
-                                  },
-                                  child: const Text.rich(
-                                    TextSpan(
-                                      text: "I agree to the ",
-                                      style: TextStyle(
-                                        color: textLightBlue,
-                                        fontSize: 13,
-                                      ),
-                                      children: [
-                                        TextSpan(
-                                          text: "Terms of Service",
-                                          style: TextStyle(
-                                            color: textAccentBlue,
-                                            decoration: TextDecoration.underline,
-                                          ),
-                                        ),
-                                        TextSpan(text: " and "),
-                                        TextSpan(
-                                          text: "Privacy Policy",
-                                          style: TextStyle(
-                                            color: textAccentBlue,
-                                            decoration: TextDecoration.underline,
-                                          ),
-                                        ),
-                                      ],
+                                child: Text.rich(
+                                  TextSpan(
+                                    text: "I agree to the ",
+                                    style: const TextStyle(
+                                      color: textLightBlue,
+                                      fontSize: 13,
+                                      height: 1.4,
                                     ),
+                                    children: [
+                                      TextSpan(
+                                        text: "Terms of Service",
+                                        recognizer: _termsRecognizer,
+                                        style: const TextStyle(
+                                          color: textAccentBlue,
+                                          fontWeight: FontWeight.w600,
+                                          decoration: TextDecoration.underline,
+                                          decorationColor: textAccentBlue,
+                                        ),
+                                      ),
+                                      const TextSpan(text: " and "),
+                                      TextSpan(
+                                        text: "Privacy Policy",
+                                        recognizer: _privacyRecognizer,
+                                        style: const TextStyle(
+                                          color: textAccentBlue,
+                                          fontWeight: FontWeight.w600,
+                                          decoration: TextDecoration.underline,
+                                          decorationColor: textAccentBlue,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -391,11 +420,13 @@ class _HalamanRegisterState extends State<HalamanRegister> {
                             width: double.infinity,
                             height: 54,
                             child: ElevatedButton(
-                              onPressed: isLoading ? null : _register,
+                              onPressed: (isLoading || !agreeTerms) ? null : _register,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: primaryBlue,
                                 foregroundColor: Colors.white,
-                                elevation: 8,
+                                disabledBackgroundColor: primaryBlue.withValues(alpha: 0.35),
+                                disabledForegroundColor: Colors.white.withValues(alpha: 0.45),
+                                elevation: agreeTerms ? 8 : 0,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
