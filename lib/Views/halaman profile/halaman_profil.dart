@@ -63,6 +63,11 @@ class _HalamanProfilState extends State<HalamanProfil>
 
   Future<void> _loadProfileAndStats() async {
     try {
+      if (mounted) {
+        setState(() {
+          _userTrips = [];
+        });
+      }
       final profile = await ProfileService.instance.getUserProfile();
       final trips = await TripService.instance.getTrips();
       final savedCount = await SavedPlacesService.instance.getSavedPlaces();
@@ -685,7 +690,6 @@ class _HalamanProfilState extends State<HalamanProfil>
 
                       Container(
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
                             color: AppColors.surfaceVariant.withValues(
@@ -701,8 +705,9 @@ class _HalamanProfilState extends State<HalamanProfil>
                           ],
                         ),
                         child: Material(
-                          color: Colors.transparent,
+                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(24),
+                          clipBehavior: Clip.antiAlias,
                           child: Column(
                             children: [
                               // 1. Informasi Pribadi

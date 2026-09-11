@@ -694,8 +694,9 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Terjadi kendala saat meracik itinerary: $e"),
+          content: Text("Gagal membuat itinerary AI. Coba lagi.\nDetail: $e"),
           backgroundColor: const Color(0xFFBA1A1A),
+          duration: const Duration(seconds: 4),
         ),
       );
     }

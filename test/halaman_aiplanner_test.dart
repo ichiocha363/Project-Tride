@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:project_tride/Models/user_model.dart';
+import 'package:project_tride/Services/gemini_service.dart';
 import 'package:project_tride/Views/halaman Ai Planner/halaman_aiplanner_step1.dart';
 import 'package:project_tride/Views/halaman Ai Planner/halaman_aiplanner_step2.dart' as step2;
 import 'package:project_tride/Views/halaman Ai Planner/halaman_aiplanner_step3.dart' as step3;
@@ -12,6 +16,42 @@ class TestHttpOverrides extends HttpOverrides {}
 void main() {
   setUpAll(() {
     HttpOverrides.global = TestHttpOverrides();
+    final mockClient = MockClient((request) async {
+      final mockJson = {
+        'candidates': [
+          {
+            'content': {
+              'parts': [
+                {
+                  'text': jsonEncode({
+                    'destination': 'Lombok, Indonesia',
+                    'duration': '5 Hari 4 Malam',
+                    'styles': 'Photography & Nature',
+                    'schedule': [
+                      {
+                        'day': 'Hari 1',
+                        'title': 'Eksplorasi Pantai Kuta Lombok',
+                        'activities': [
+                          {
+                            'time': '09:00 - 12:00',
+                            'location': 'Pantai Kuta Lombok',
+                            'title': 'Wisata Pantai & Foto Air Jernih',
+                            'description': 'Menikmati keindahan pasir merica',
+                            'tips': 'Sewa papan surfing'
+                          }
+                        ]
+                      }
+                    ]
+                  })
+                }
+              ]
+            }
+          }
+        ]
+      };
+      return http.Response(jsonEncode(mockJson), 200);
+    });
+    GeminiService.instance = GeminiService.custom(apiKey: 'mock-test-key', client: mockClient);
   });
 
   testWidgets(
@@ -249,7 +289,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Buat Itinerary Saya').first);
       await tester.pump(); // Start loading
-      await tester.pump(const Duration(seconds: 3)); // Wait for AI generation
+      await tester.pump(const Duration(seconds: 1)); // Wait for AI generation
       await tester.pumpAndSettle(); // Settle bottom sheet
 
       // Verify AI Generated Itinerary bottom sheet result is displayed!
@@ -258,4 +298,3 @@ void main() {
     },
   );
 }
-

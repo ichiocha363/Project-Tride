@@ -632,7 +632,6 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                       margin: const EdgeInsets.only(top: 8),
                       constraints: const BoxConstraints(maxHeight: 200),
                       decoration: BoxDecoration(
-                        color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
@@ -642,68 +641,73 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                           ),
                         ],
                       ),
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        itemCount: _filteredDestinations.length > 5
-                            ? 5
-                            : _filteredDestinations.length,
-                        separatorBuilder: (context, idx) =>
-                            const Divider(height: 1, color: surfaceVariant),
-                        itemBuilder: (context, idx) {
-                          final dest = _filteredDestinations[idx];
-                          return ListTile(
-                            dense: true,
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                dest.image,
-                                width: 38,
-                                height: 38,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Container(
+                      child: Material(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        clipBehavior: Clip.antiAlias,
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          itemCount: _filteredDestinations.length > 5
+                              ? 5
+                              : _filteredDestinations.length,
+                          separatorBuilder: (context, idx) =>
+                              const Divider(height: 1, color: surfaceVariant),
+                          itemBuilder: (context, idx) {
+                            final dest = _filteredDestinations[idx];
+                            return ListTile(
+                              dense: true,
+                              leading: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  dest.image,
                                   width: 38,
                                   height: 38,
-                                  color: surfaceContainer,
-                                  child: const Icon(Icons.image,
-                                      size: 18, color: textSlate),
-                                ),
-                              ),
-                            ),
-                            title: Text(
-                              dest.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: textNavy,
-                              ),
-                            ),
-                            subtitle: Text(
-                              dest.location,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: textSlate,
-                              ),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.star_rounded,
-                                    size: 16, color: warmYellow),
-                                const SizedBox(width: 2),
-                                Text(
-                                  dest.rating.toStringAsFixed(1),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                    width: 38,
+                                    height: 38,
+                                    color: surfaceContainer,
+                                    child: const Icon(Icons.image,
+                                        size: 18, color: textSlate),
                                   ),
                                 ),
-                              ],
-                            ),
-                            onTap: () => _selectDestinationFromList(dest),
-                          );
-                        },
+                              ),
+                              title: Text(
+                                dest.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: textNavy,
+                                ),
+                              ),
+                              subtitle: Text(
+                                dest.location,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: textSlate,
+                                ),
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.star_rounded,
+                                      size: 16, color: warmYellow),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    dest.rating.toStringAsFixed(1),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              onTap: () => _selectDestinationFromList(dest),
+                            );
+                          },
+                        ),
                       ),
                     ),
 

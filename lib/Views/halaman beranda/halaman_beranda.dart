@@ -140,6 +140,12 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
 
   Future<void> _loadUpcomingTrip() async {
     try {
+      if (mounted) {
+        setState(() {
+          _isLoadingTrip = true;
+          _upcomingTrip = null;
+        });
+      }
       final trip = await TripService.instance.getUpcomingTrip();
       if (mounted) {
         setState(() {
@@ -150,6 +156,7 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
     } catch (_) {
       if (mounted) {
         setState(() {
+          _upcomingTrip = null;
           _isLoadingTrip = false;
         });
       }

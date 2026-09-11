@@ -583,43 +583,40 @@ class _HalamanPengaturanState extends State<HalamanPengaturan> {
     required VoidCallback onTap,
     required bool showDivider,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: Column(
-        children: [
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            leading: Icon(icon, color: AppColors.primaryDeep, size: 24),
-            title: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
+    return Column(
+      children: [
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          leading: Icon(icon, color: AppColors.primaryDeep, size: 24),
+          title: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
             ),
-            subtitle: subtitle != null
-                ? Text(
-                    subtitle,
-                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                  )
-                : null,
-            trailing: trailing ??
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.textLight,
-                ),
-            onTap: onTap,
           ),
-          if (showDivider)
-            const Divider(
-              height: 1,
-              indent: 56,
-              endIndent: 16,
-              color: AppColors.surfaceVariant,
-            ),
-        ],
-      ),
+          subtitle: subtitle != null
+              ? Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                )
+              : null,
+          trailing: trailing ??
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textLight,
+              ),
+          onTap: onTap,
+        ),
+        if (showDivider)
+          const Divider(
+            height: 1,
+            indent: 56,
+            endIndent: 16,
+            color: AppColors.surfaceVariant,
+          ),
+      ],
     );
   }
 }

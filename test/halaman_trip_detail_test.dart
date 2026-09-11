@@ -136,7 +136,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Trip Solo Backpacker'), findsOneWidget);
-      expect(find.text('Belum Ada Jadwal Itinerary'), findsOneWidget);
+      expect(find.text('Belum ada itinerary'), findsOneWidget);
       expect(
         find.text('Jadwal aktivitas perjalanan akan muncul di sini setelah dibuat.'),
         findsOneWidget,
@@ -174,5 +174,79 @@ void main() {
       expect(toFirestoreMap['itinerary_days'], isNotNull);
       expect(toFirestoreMap['itinerary_days'].length, 1);
     });
+
+    testWidgets('5. Delete button is rendered when trip.id is valid and triggers confirmation dialog',
+        (WidgetTester tester) async {
+      final tripWithId = TripModel(
+        id: 'trip-valid-id-123',
+        userId: 'user-auth-uid-1',
+        tripName: 'Liburan Labuan Bajo',
+        startDate: '2026-10-01',
+        endDate: '2026-10-05',
+        budget: 8000000,
+        spentBudget: 1500000,
+        status: 'upcoming',
+        createdAt: DateTime.now().toIso8601String(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HalamanTripDetail(
+            user: user,
+            trip: tripWithId,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Find Delete IconButton by tooltip or icon
+      final deleteIconButton = find.byTooltip('Hapus Trip');
+      expect(deleteIconButton, findsOneWidget);
+
+      // Tap Delete Icon
+      await tester.tap(deleteIconButton);
+      await tester.pumpAndSettle();
+
+      // Verify Confirmation Dialog is shown
+      expect(find.text('Hapus Trip'), findsOneWidget);
+      expect(
+        find.text("Apakah Anda yakin ingin menghapus rencana perjalanan 'Liburan Labuan Bajo'?"),
+        findsOneWidget,
+      );
+      expect(find.text('Batal'), findsOneWidget);
+      expect(find.text('Hapus'), findsOneWidget);
+
+      // Tap Batal
+      await tester.tap(find.text('Batal'));
+      await tester.pumpAndSettle();
+
+      // Verify dialog is closed and trip detail page is still open
+      expect(find.text('Liburan Labuan Bajo'), findsOneWidget);
+    });
+
+    testWidgets('6. Delete button is NOT rendered when trip.id is null or empty',
+        (WidgetTester tester) async {
+      final tripWithoutId = TripModel(
+        id: '',
+        userId: 'user-auth-uid-1',
+        tripName: 'Trip Tanpa ID',
+        startDate: '2026-10-01',
+        endDate: '2026-10-05',
+        createdAt: DateTime.now().toIso8601String(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HalamanTripDetail(
+            user: user,
+            trip: tripWithoutId,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byTooltip('Hapus Trip'), findsNothing);
+    });
   });
 }
+

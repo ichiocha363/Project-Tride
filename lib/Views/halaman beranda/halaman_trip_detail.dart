@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:project_tride/Database/trip_model.dart';
 import 'package:project_tride/Models/user_model.dart';
@@ -56,6 +57,8 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
   late int _budget;
   late int _spentBudget;
   List<Map<String, dynamic>>? _itineraryDays;
+  bool _isDeleting = false;
+
 
   // Stitch Design Theme Colors
   static const Color primaryBlue = Color(0xFF0056D2);
@@ -256,14 +259,45 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
                     const SizedBox(height: 24),
 
                     // Section Heading: Rencana Perjalanan
-                    const Text(
-                      'Rencana Perjalanan',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: textDark,
-                        letterSpacing: -0.5,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Rencana Perjalanan',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: textDark,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: _openAddItineraryDialog,
+                          icon: const Icon(
+                            Icons.add_circle_outline_rounded,
+                            size: 18,
+                            color: primaryBlue,
+                          ),
+                          label: const Text(
+                            '+ Tambah Aktivitas',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: primaryBlue,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            backgroundColor: primaryBlue.withAlpha(15),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 16),
@@ -333,10 +367,10 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
 
           Row(
             children: [
-              if (_trip?.id != null)
+              if (_trip?.id != null && _trip!.id!.trim().isNotEmpty)
                 IconButton(
                   tooltip: 'Hapus Trip',
-                  onPressed: _confirmDeleteTrip,
+                  onPressed: _isDeleting ? null : _confirmDeleteTrip,
                   icon: const Icon(
                     Icons.delete_outline_rounded,
                     color: Colors.redAccent,
@@ -682,7 +716,7 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Belum Ada Jadwal Itinerary',
+              'Belum ada itinerary',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -697,6 +731,23 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
                 fontSize: 13,
                 color: textMuted,
                 height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _openAddItineraryDialog,
+              icon: const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+              label: const Text(
+                '+ Tambah Aktivitas',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryBlue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
             ),
           ],
@@ -872,7 +923,7 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Top Row: Icon + Time + Cost
+                              // Top Row: Icon + Time + Cost + Edit/Delete Actions
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
@@ -895,13 +946,53 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
                                       ),
                                     ],
                                   ),
-                                  Text(
-                                    act.cost,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: textDark,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        act.cost,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: textDark,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      InkWell(
+                                        key: Key('edit_act_${dayIndex}_$actIndex'),
+                                        onTap: () => _openEditItineraryDialog(
+                                          dayIndex,
+                                          actIndex,
+                                          act,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: const Padding(
+                                          padding: EdgeInsets.all(4.0),
+                                          child: Icon(
+                                            Icons.edit_outlined,
+                                            size: 16,
+                                            color: primaryBlue,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      InkWell(
+                                        key: Key('delete_act_${dayIndex}_$actIndex'),
+                                        onTap: () => _confirmDeleteItineraryItem(
+                                          dayIndex,
+                                          actIndex,
+                                          act,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: const Padding(
+                                          padding: EdgeInsets.all(4.0),
+                                          child: Icon(
+                                            Icons.delete_outline_rounded,
+                                            size: 16,
+                                            color: Colors.redAccent,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -916,6 +1007,33 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
                                   color: textDark,
                                 ),
                               ),
+
+                              if (act.location != null &&
+                                  act.location!.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.location_on_rounded,
+                                      size: 13,
+                                      color: Colors.redAccent,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        act.location!,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: textMuted,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
 
                               if (act.subtitle != null &&
                                   act.subtitle!.isNotEmpty) ...[
@@ -946,60 +1064,129 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
   }
 
   void _confirmDeleteTrip() {
+    if (_isDeleting) return;
+    final tripId = _trip?.id?.trim();
+
+    debugPrint('''
+=== DELETE TRIP START (UI CALL) ===
+Auth UID: ${TripService.instance.currentUserId ?? 'NULL / Unauthenticated'}
+Trip Model ID: ${tripId ?? 'NULL'}
+Trip Model ID type: ${tripId.runtimeType}
+Trip Name: $_title
+''');
+
+    if (tripId == null || tripId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Gagal menghapus trip. Document ID tidak valid."),
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-            SizedBox(width: 10),
-            Text(
-              "Hapus Trip",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+              SizedBox(width: 10),
+              Text(
+                "Hapus Trip",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ],
+          ),
+          content: Text(
+            "Apakah Anda yakin ingin menghapus rencana perjalanan '$_title'?",
+            style: const TextStyle(fontSize: 14, color: textDark),
+          ),
+          actions: [
+            TextButton(
+              onPressed: _isDeleting ? null : () => Navigator.pop(dialogCtx),
+              child: const Text("Batal"),
+            ),
+            ElevatedButton(
+              onPressed: _isDeleting
+                  ? null
+                  : () async {
+                      setDialogState(() => _isDeleting = true);
+                      if (mounted) setState(() => _isDeleting = true);
+
+                      try {
+                        final success = await TripService.instance.deleteTrip(
+                          tripId,
+                          tripName: _title,
+                        );
+
+                        if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+
+                        if (!mounted) return;
+
+                        if (success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Trip berhasil dihapus"),
+                            ),
+                          );
+                          Navigator.pop(context, true);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Gagal menghapus trip. Coba lagi."),
+                            ),
+                          );
+                        }
+                      } on FirebaseException catch (e) {
+                        if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+                        if (!mounted) return;
+
+                        String errorMsg = "Gagal menghapus trip. Coba lagi.";
+                        if (e.code == 'permission-denied') {
+                          errorMsg = "Anda tidak memiliki akses untuk menghapus trip ini.";
+                        } else if (e.code == 'unavailable' || e.code == 'network-request-failed') {
+                          errorMsg = "Gagal menghapus trip. Periksa koneksi internet.";
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(errorMsg)),
+                        );
+                      } catch (e) {
+                        if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+                        if (!mounted) return;
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Gagal menghapus trip. Terjadi kesalahan."),
+                          ),
+                        );
+                      } finally {
+                        if (mounted) {
+                          setState(() => _isDeleting = false);
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: _isDeleting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text("Hapus"),
             ),
           ],
         ),
-        content: Text(
-          "Apakah Anda yakin ingin menghapus rencana perjalanan '$_title'?",
-          style: const TextStyle(fontSize: 14, color: textDark),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text("Batal"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(dialogCtx);
-              if (_trip?.id != null) {
-                final success = await TripService.instance.deleteTrip(_trip!.id!);
-                if (mounted) {
-                  if (success) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Trip berhasil dihapus")),
-                    );
-                    Navigator.pop(context, true);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Gagal menghapus trip. Coba lagi."),
-                      ),
-                    );
-                  }
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text("Hapus"),
-          ),
-        ],
       ),
     );
   }
@@ -1184,6 +1371,704 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
     );
   }
 
+  Future<bool> _saveItineraryDaysToFirestore(
+    List<Map<String, dynamic>> newDays,
+  ) async {
+    final tripId = _trip?.id?.trim();
+    final uid = widget.user?.id?.toString();
+
+    setState(() {
+      _itineraryDays = newDays;
+      if (_trip != null) {
+        _trip = _trip!.copyWith(itineraryDays: newDays);
+      }
+    });
+
+    if (tripId != null && tripId.isNotEmpty) {
+      final success = await TripService.instance.updateItineraryDays(
+        tripId,
+        newDays,
+        uid: uid,
+      );
+      return success;
+    }
+    return true;
+  }
+
+  void _openAddItineraryDialog() {
+    final List<Map<String, dynamic>> days = List<Map<String, dynamic>>.from(
+      (_itineraryDays ?? widget.itineraryDays ?? [])
+          .map((e) => Map<String, dynamic>.from(e)),
+    );
+
+    int selectedDayIndex = 0;
+    if (days.isEmpty) {
+      selectedDayIndex = -1;
+    }
+
+    final titleController = TextEditingController();
+    final timeController = TextEditingController(text: '09:00');
+    final locationController = TextEditingController();
+    final descController = TextEditingController();
+    final costController = TextEditingController(text: 'Rp 0');
+    final newDayTitleController = TextEditingController(
+      text: 'Hari ${days.length + 1}',
+    );
+
+    bool isSaving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (modalCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "+ Tambah Aktivitas",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: textDark,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: isSaving ? null : () => Navigator.pop(ctx),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  DropdownButtonFormField<int>(
+                    initialValue: selectedDayIndex,
+                    decoration: InputDecoration(
+                      labelText: "Pilih Hari",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.calendar_month_rounded),
+                    ),
+                    items: [
+                      ...List.generate(days.length, (i) {
+                        final d = days[i];
+                        final dNum = d['dayNumber'] ?? d['day'] ?? 'Hari ${i + 1}';
+                        final dTitle = d['dayDate'] ?? d['title'] ?? '';
+                        final label = dTitle.isNotEmpty ? '$dNum ($dTitle)' : '$dNum';
+                        return DropdownMenuItem<int>(
+                          value: i,
+                          child: Text(label, overflow: TextOverflow.ellipsis),
+                        );
+                      }),
+                      DropdownMenuItem<int>(
+                        value: -1,
+                        child: Text(
+                          "+ Tambah Hari Baru (Hari ${days.length + 1})",
+                          style: const TextStyle(
+                            color: primaryBlue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: isSaving
+                        ? null
+                        : (val) {
+                            if (val != null) {
+                              setModalState(() => selectedDayIndex = val);
+                            }
+                          },
+                  ),
+
+                  if (selectedDayIndex == -1) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: newDayTitleController,
+                      enabled: !isSaving,
+                      decoration: InputDecoration(
+                        labelText: "Judul Hari Baru",
+                        hintText: "Contoh: Hari 1 - Kedatangan",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: const Icon(Icons.label_outline_rounded),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: titleController,
+                    enabled: !isSaving,
+                    decoration: InputDecoration(
+                      labelText: "Judul Aktivitas *",
+                      hintText: "Contoh: Dinner di Jimbaran",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.event_available_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: timeController,
+                          enabled: !isSaving,
+                          decoration: InputDecoration(
+                            labelText: "Waktu",
+                            hintText: "09:00",
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            prefixIcon: const Icon(Icons.access_time_rounded),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: costController,
+                          enabled: !isSaving,
+                          decoration: InputDecoration(
+                            labelText: "Estimasi Biaya",
+                            hintText: "Rp 150.000",
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            prefixIcon: const Icon(Icons.monetization_on_outlined),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: locationController,
+                    enabled: !isSaving,
+                    decoration: InputDecoration(
+                      labelText: "Lokasi (Opsional)",
+                      hintText: "Contoh: Pantai Jimbaran",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.location_on_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descController,
+                    enabled: !isSaving,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: "Catatan / Deskripsi (Opsional)",
+                      hintText: "Contoh: Pesan tempat di area outdoor",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.notes_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: isSaving
+                          ? null
+                          : () async {
+                              final actTitle = titleController.text.trim();
+                              if (actTitle.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Judul aktivitas wajib diisi"),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              setModalState(() => isSaving = true);
+
+                              final newActMap = <String, dynamic>{
+                                'id':
+                                    'act_${DateTime.now().millisecondsSinceEpoch}',
+                                'title': actTitle,
+                                'time': timeController.text.trim().isNotEmpty
+                                    ? timeController.text.trim()
+                                    : '09:00',
+                                'cost': costController.text.trim().isNotEmpty
+                                    ? costController.text.trim()
+                                    : 'Rp 0',
+                                'location': locationController.text.trim(),
+                                'subtitle': descController.text.trim(),
+                                'description': descController.text.trim(),
+                                'isCompleted': false,
+                              };
+
+                              final updatedDays = List<Map<String, dynamic>>.from(
+                                days.map((e) => Map<String, dynamic>.from(e)),
+                              );
+
+                              if (selectedDayIndex >= 0 &&
+                                  selectedDayIndex < updatedDays.length) {
+                                final targetDay = Map<String, dynamic>.from(
+                                  updatedDays[selectedDayIndex],
+                                );
+                                final rawActs = targetDay['activities'] ??
+                                    targetDay['schedule'] ??
+                                    targetDay['items'];
+                                final List acts = rawActs is List
+                                    ? List.from(rawActs)
+                                    : [];
+                                acts.add(newActMap);
+                                targetDay['activities'] = acts;
+                                updatedDays[selectedDayIndex] = targetDay;
+                              } else {
+                                final newDayNum = updatedDays.length + 1;
+                                final newDayTitle = newDayTitleController.text
+                                        .trim()
+                                        .isNotEmpty
+                                    ? newDayTitleController.text.trim()
+                                    : 'Hari $newDayNum';
+                                updatedDays.add({
+                                  'day': newDayTitle,
+                                  'title': newDayTitle,
+                                  'dayNumber':
+                                      'D ${newDayNum.toString().padLeft(2, '0')}',
+                                  'dayDate': newDayTitle,
+                                  'activities': [newActMap],
+                                });
+                              }
+
+                              final ok = await _saveItineraryDaysToFirestore(
+                                updatedDays,
+                              );
+
+                              if (modalCtx.mounted) Navigator.pop(modalCtx);
+                              if (!mounted) return;
+
+                              if (ok) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Aktivitas berhasil ditambahkan!",
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Gagal menyimpan ke Firestore. Data lokal diperbarui.",
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              "Simpan Aktivitas",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _openEditItineraryDialog(
+    int dayIndex,
+    int actIndex,
+    _ParsedActivity act,
+  ) {
+    final List<Map<String, dynamic>> days = List<Map<String, dynamic>>.from(
+      (_itineraryDays ?? widget.itineraryDays ?? [])
+          .map((e) => Map<String, dynamic>.from(e)),
+    );
+
+    final titleController = TextEditingController(text: act.title);
+    final timeController = TextEditingController(text: act.time);
+    final locationController = TextEditingController(text: act.location ?? '');
+    final descController = TextEditingController(text: act.subtitle ?? '');
+    final costController = TextEditingController(text: act.cost);
+
+    bool isSaving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (modalCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Edit Aktivitas Itinerary",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: textDark,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: isSaving ? null : () => Navigator.pop(ctx),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: titleController,
+                    enabled: !isSaving,
+                    decoration: InputDecoration(
+                      labelText: "Judul Aktivitas *",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.event_available_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: timeController,
+                          enabled: !isSaving,
+                          decoration: InputDecoration(
+                            labelText: "Waktu",
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            prefixIcon: const Icon(Icons.access_time_rounded),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: costController,
+                          enabled: !isSaving,
+                          decoration: InputDecoration(
+                            labelText: "Estimasi Biaya",
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            prefixIcon: const Icon(Icons.monetization_on_outlined),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: locationController,
+                    enabled: !isSaving,
+                    decoration: InputDecoration(
+                      labelText: "Lokasi",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.location_on_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descController,
+                    enabled: !isSaving,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: "Catatan / Deskripsi",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.notes_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: isSaving
+                          ? null
+                          : () async {
+                              final actTitle = titleController.text.trim();
+                              if (actTitle.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Judul aktivitas wajib diisi"),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              setModalState(() => isSaving = true);
+
+                              final updatedActMap = Map<String, dynamic>.from(
+                                act.rawMap,
+                              );
+                              updatedActMap['id'] = act.id;
+                              updatedActMap['title'] = actTitle;
+                              updatedActMap['time'] =
+                                  timeController.text.trim().isNotEmpty
+                                      ? timeController.text.trim()
+                                      : act.time;
+                              updatedActMap['cost'] =
+                                  costController.text.trim().isNotEmpty
+                                      ? costController.text.trim()
+                                      : act.cost;
+                              updatedActMap['location'] =
+                                  locationController.text.trim();
+                              updatedActMap['subtitle'] =
+                                  descController.text.trim();
+                              updatedActMap['description'] =
+                                  descController.text.trim();
+
+                              final updatedDays = List<Map<String, dynamic>>.from(
+                                days.map((e) => Map<String, dynamic>.from(e)),
+                              );
+
+                              if (dayIndex >= 0 &&
+                                  dayIndex < updatedDays.length) {
+                                final targetDay = Map<String, dynamic>.from(
+                                  updatedDays[dayIndex],
+                                );
+                                final rawActs = targetDay['activities'] ??
+                                    targetDay['schedule'] ??
+                                    targetDay['items'];
+                                final List acts = rawActs is List
+                                    ? List.from(rawActs)
+                                    : [];
+                                if (actIndex >= 0 && actIndex < acts.length) {
+                                  acts[actIndex] = updatedActMap;
+                                  targetDay['activities'] = acts;
+                                  updatedDays[dayIndex] = targetDay;
+                                }
+                              }
+
+                              final ok = await _saveItineraryDaysToFirestore(
+                                updatedDays,
+                              );
+
+                              if (modalCtx.mounted) Navigator.pop(modalCtx);
+                              if (!mounted) return;
+
+                              if (ok) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Aktivitas berhasil diperbarui!",
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Gagal menyimpan ke Firestore. Data lokal diperbarui.",
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              "Simpan Perubahan",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteItineraryItem(
+    int dayIndex,
+    int actIndex,
+    _ParsedActivity act,
+  ) {
+    final List<Map<String, dynamic>> days = List<Map<String, dynamic>>.from(
+      (_itineraryDays ?? widget.itineraryDays ?? [])
+          .map((e) => Map<String, dynamic>.from(e)),
+    );
+
+    bool isDeleting = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+              SizedBox(width: 10),
+              Text(
+                "Hapus Aktivitas",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ],
+          ),
+          content: Text(
+            "Apakah Anda yakin ingin menghapus aktivitas '${act.title}'?",
+            style: const TextStyle(fontSize: 14, color: textDark),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isDeleting ? null : () => Navigator.pop(dialogCtx),
+              child: const Text("Batal"),
+            ),
+            ElevatedButton(
+              onPressed: isDeleting
+                  ? null
+                  : () async {
+                      setDialogState(() => isDeleting = true);
+
+                      final updatedDays = List<Map<String, dynamic>>.from(
+                        days.map((e) => Map<String, dynamic>.from(e)),
+                      );
+
+                      if (dayIndex >= 0 && dayIndex < updatedDays.length) {
+                        final targetDay = Map<String, dynamic>.from(
+                          updatedDays[dayIndex],
+                        );
+                        final rawActs = targetDay['activities'] ??
+                            targetDay['schedule'] ??
+                            targetDay['items'];
+                        final List acts = rawActs is List ? List.from(rawActs) : [];
+                        if (actIndex >= 0 && actIndex < acts.length) {
+                          acts.removeAt(actIndex);
+                          targetDay['activities'] = acts;
+                          updatedDays[dayIndex] = targetDay;
+                        }
+                      }
+
+                      final ok = await _saveItineraryDaysToFirestore(updatedDays);
+
+                      if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+                      if (!mounted) return;
+
+                      if (ok) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Aktivitas berhasil dihapus"),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "Gagal memperbarui Firestore. Data lokal diperbarui.",
+                            ),
+                          ),
+                        );
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: isDeleting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text("Hapus"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildEditActionButton(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1306,72 +2191,108 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
 
 /// Helper model untuk parsing aktivitas harian secara aman dari berbagai tipe data (String / Map).
 class _ParsedActivity {
+  final String id;
   final String title;
   final String? subtitle;
   final String time;
   final String cost;
+  final String? location;
   final bool isCompleted;
   final IconData icon;
+  final Map<String, dynamic> rawMap;
 
   _ParsedActivity({
+    required this.id,
     required this.title,
     this.subtitle,
     required this.time,
     required this.cost,
+    this.location,
     required this.isCompleted,
     required this.icon,
+    required this.rawMap,
   });
 
   factory _ParsedActivity.fromDynamic(dynamic act, int index) {
+    final String genId = 'act_${DateTime.now().millisecondsSinceEpoch}_$index';
+
     if (act is Map) {
-      final title = act['title']?.toString() ??
-          act['name']?.toString() ??
-          act['activity']?.toString() ??
-          act['description']?.toString() ??
+      final map = Map<String, dynamic>.from(act);
+      final id = map['id']?.toString() ?? genId;
+      final title = map['title']?.toString() ??
+          map['name']?.toString() ??
+          map['activity']?.toString() ??
+          map['description']?.toString() ??
           'Aktivitas ${index + 1}';
-      final subtitle = act['subtitle']?.toString() ??
-          act['desc']?.toString() ??
-          act['notes']?.toString();
-      final time = act['time']?.toString() ?? _defaultTimeForIndex(index);
-      final cost = act['cost']?.toString() ?? 'Rp 0';
-      final isCompleted = act['isCompleted'] == true ||
-          act['completed'] == true ||
-          act['is_completed'] == true;
+      final subtitle = map['subtitle']?.toString() ??
+          map['desc']?.toString() ??
+          map['notes']?.toString() ??
+          (map['description'] != title ? map['description']?.toString() : null);
+      final location = map['location']?.toString();
+      final time = map['time']?.toString() ?? _defaultTimeForIndex(index);
+      final cost = map['cost']?.toString() ?? 'Rp 0';
+      final isCompleted = map['isCompleted'] == true ||
+          map['completed'] == true ||
+          map['is_completed'] == true;
 
       IconData icon = Icons.place_rounded;
-      if (act['icon'] is IconData) {
-        icon = act['icon'] as IconData;
+      if (map['icon'] is IconData) {
+        icon = map['icon'] as IconData;
       } else {
-        icon = _iconForText('$title ${subtitle ?? ''}');
+        icon = _iconForText('$title ${subtitle ?? ''} ${location ?? ''}');
       }
 
       return _ParsedActivity(
+        id: id,
         title: title,
         subtitle: subtitle != null && subtitle.isNotEmpty ? subtitle : null,
         time: time,
         cost: cost,
+        location: location != null && location.isNotEmpty ? location : null,
         isCompleted: isCompleted,
         icon: icon,
+        rawMap: map,
       );
     } else if (act is String) {
       final text = act.trim();
+      final title = text.isNotEmpty ? text : 'Aktivitas ${index + 1}';
+      final map = <String, dynamic>{
+        'id': genId,
+        'title': title,
+        'time': _defaultTimeForIndex(index),
+        'cost': 'Rp 0',
+        'isCompleted': false,
+      };
       return _ParsedActivity(
-        title: text.isNotEmpty ? text : 'Aktivitas ${index + 1}',
+        id: genId,
+        title: title,
         subtitle: null,
         time: _defaultTimeForIndex(index),
         cost: 'Rp 0',
+        location: null,
         isCompleted: false,
         icon: _iconForText(text),
+        rawMap: map,
       );
     } else {
       final text = act?.toString() ?? 'Aktivitas ${index + 1}';
+      final map = <String, dynamic>{
+        'id': genId,
+        'title': text,
+        'time': _defaultTimeForIndex(index),
+        'cost': 'Rp 0',
+        'isCompleted': false,
+      };
       return _ParsedActivity(
+        id: genId,
         title: text,
         subtitle: null,
         time: _defaultTimeForIndex(index),
         cost: 'Rp 0',
+        location: null,
         isCompleted: false,
         icon: Icons.event_note_rounded,
+        rawMap: map,
       );
     }
   }
