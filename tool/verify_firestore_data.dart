@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 Future<void> main() async {
-  const apiKey = 'AIzaSyB0nHVIV2GZz9ej3kT8DlssdZSofqgPwlQ';
+  final apiKey = Platform.environment['FIREBASE_API_KEY'] ?? Platform.environment['GEMINI_API_KEY'] ?? '';
   const projectId = 'tride-project-92f17';
 
   print('Memverifikasi dokumen Firestore collection `destinations`...');

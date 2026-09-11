@@ -4,7 +4,7 @@ import 'dart:io';
 
 void main() async {
   final client = HttpClient();
-  const apiKey = 'AIzaSyB0nHVIV2GZz9ej3kT8DlssdZSofqgPwlQ';
+  final apiKey = Platform.environment['FIREBASE_API_KEY'] ?? Platform.environment['GEMINI_API_KEY'] ?? '';
   const projectId = 'tride-project-92f17';
   final sampleIds = [1, 2, 3, 16, 46];
 

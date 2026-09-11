@@ -7,7 +7,7 @@ import 'dart:io';
 /// ID Dokumen: `1` s/d `50` (Stable ID)
 
 void main() async {
-  const apiKey = 'AIzaSyB0nHVIV2GZz9ej3kT8DlssdZSofqgPwlQ';
+  final apiKey = Platform.environment['FIREBASE_API_KEY'] ?? Platform.environment['GEMINI_API_KEY'] ?? '';
   const projectId = 'tride-project-92f17';
   const collectionName = 'destinations';
 

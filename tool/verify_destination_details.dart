@@ -10,7 +10,7 @@ import 'dart:io';
 /// 5. Memastikan setiap destinasi memiliki minimal 3 local_foods
 /// 6. Memastikan tidak ada duplicate document
 void main() async {
-  const apiKey = 'AIzaSyB0nHVIV2GZz9ej3kT8DlssdZSofqgPwlQ';
+  final apiKey = Platform.environment['FIREBASE_API_KEY'] ?? Platform.environment['GEMINI_API_KEY'] ?? '';
   const projectId = 'tride-project-92f17';
 
   print('===============================================================');
