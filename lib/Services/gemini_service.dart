@@ -1,27 +1,53 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+/// Exception khusus untuk penanganan error pada Gemini Service
+class GeminiException implements Exception {
+  final String message;
+  GeminiException(this.message);
+
+  @override
+  String toString() => message;
+}
+
 /// Service backend untuk menghasilkan rekomendasi itinerary perjalanan
-/// menggunakan Google Gemini AI API (model resmi: gemini-1.5-flash).
+/// menggunakan Google Gemini AI API (model resmi: gemini-2.5-flash via Firebase Cloud Functions).
 class GeminiService {
   final http.Client? _injectedClient;
+  final FirebaseFunctions? _injectedFunctions;
   String _apiKey;
+  String _backendUrl;
+  bool? _useCallableFunctionOverride;
 
-  /// Default API Key untuk aplikasi Tride (dapat di-override via env / parameter)
+  /// Default API Key dari environment variable (--dart-define=GEMINI_API_KEY=xxx)
   static const String envApiKey = String.fromEnvironment('GEMINI_API_KEY');
-  static const String defaultApiKey =
-      'AQ.Ab8RN6KLr4JC33C0U8Tc6TiIeIwiwTMMOguABPTH32pjPkgfHQ';
+
+  /// Default Backend Proxy URL dari environment variable (--dart-define=GEMINI_BACKEND_URL=https://...)
+  static const String envBackendUrl = String.fromEnvironment('GEMINI_BACKEND_URL');
 
   /// Timeout durasi request Gemini API (25 detik untuk perangkat mobile)
   static const Duration requestTimeout = Duration(seconds: 25);
 
-  /// Model resmi aktif yang didukung Google Gemini v1beta REST API
-  static const String activeModel = 'gemini-1.5-flash';
+  /// Model resmi aktif yang didukung Google Gemini API
+  static const String activeModel = 'gemini-2.5-flash';
 
-  GeminiService._internal({String? apiKey, http.Client? client})
-      : _apiKey = _resolveApiKey(apiKey),
-        _injectedClient = client;
+  /// Region Cloud Function (Singapore untuk latency terendah Indonesia)
+  static const String functionsRegion = 'asia-southeast1';
+
+  GeminiService._internal({
+    String? apiKey,
+    String? backendUrl,
+    http.Client? client,
+    FirebaseFunctions? functions,
+    bool? useCallableFunction,
+  })  : _apiKey = _resolveApiKey(apiKey),
+        _backendUrl = _resolveBackendUrl(backendUrl),
+        _injectedClient = client,
+        _injectedFunctions = functions,
+        _useCallableFunctionOverride = useCallableFunction;
 
   static String _resolveApiKey(String? providedKey) {
     if (providedKey != null && providedKey.trim().isNotEmpty) {
@@ -36,27 +62,64 @@ class GeminiService {
         return sysEnvKey.trim();
       }
     } catch (_) {}
-    return defaultApiKey;
+    return '';
   }
 
-  /// Override API Key saat runtime
-  void setApiKey(String key) {
-    if (key.trim().isNotEmpty) {
-      _apiKey = key.trim();
+  static String _resolveBackendUrl(String? providedUrl) {
+    if (providedUrl != null && providedUrl.trim().isNotEmpty) {
+      return providedUrl.trim();
     }
+    if (envBackendUrl.isNotEmpty) {
+      return envBackendUrl;
+    }
+    try {
+      final sysUrl = Platform.environment['GEMINI_BACKEND_URL'];
+      if (sysUrl != null && sysUrl.trim().isNotEmpty) {
+        return sysUrl.trim();
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  /// Override API Key saat runtime (Hanya untuk Development/Testing)
+  void setApiKey(String key) {
+    _apiKey = key.trim();
+  }
+
+  /// Override Backend Proxy URL saat runtime
+  void setBackendUrl(String url) {
+    _backendUrl = url.trim();
+  }
+
+  /// Set mode callable function
+  void setUseCallableFunction(bool useCallable) {
+    _useCallableFunctionOverride = useCallable;
   }
 
   String get currentApiKey => _apiKey;
+  String get currentBackendUrl => _backendUrl;
 
   /// Singleton instance utama
   static GeminiService instance = GeminiService._internal();
 
-  /// Factory constructor untuk pengujian (dependency injection & custom API key)
-  factory GeminiService.custom({String? apiKey, http.Client? client}) {
-    return GeminiService._internal(apiKey: apiKey, client: client);
+  /// Factory constructor untuk pengujian (dependency injection)
+  factory GeminiService.custom({
+    String? apiKey,
+    String? backendUrl,
+    http.Client? client,
+    FirebaseFunctions? functions,
+    bool? useCallableFunction,
+  }) {
+    return GeminiService._internal(
+      apiKey: apiKey,
+      backendUrl: backendUrl,
+      client: client,
+      functions: functions,
+      useCallableFunction: useCallableFunction,
+    );
   }
 
-  /// Membangun prompt terstruktur untuk Gemini AI
+  /// Membangun prompt terstruktur untuk Gemini AI (digunakan di Direct Dev Mode)
   String _buildPrompt({
     required String destination,
     required int durationDays,
@@ -111,7 +174,7 @@ Struktur JSON wajib:
   "schedule": [
     {
       "day": "Hari 1",
-      "title": "Judul Tema Hari 1 (contoh: Eksplorasi Ikonik Ciwidey & Danau Kawah)",
+      "title": "Judul Tema Hari 1 (contoh: Eksplorasi Ikonik Danau & Kawah)",
       "activities": [
         {
           "time": "09:00 - 11:30",
@@ -143,8 +206,48 @@ Pastikan list "schedule" mencakup tepat $durationDays elemen (Hari 1 hingga Hari
     required String pace,
     required String accommodation,
     String? specialNeeds,
+    bool allowFallback = false,
     http.Client? client,
   }) async {
+    // Tentukan mode eksekusi:
+    // Jika _useCallableFunctionOverride true -> Callable Function Mode
+    // Jika injectedClient / custom client supplied di test -> Direct / HTTP Test Mode
+    // Jika _apiKey non-empty & callable function tidak dipaksa -> Dev Direct REST Mode
+    // Default Production -> Firebase Callable Cloud Function Mode
+    final bool useCallable = _useCallableFunctionOverride ??
+        (_injectedClient == null && client == null && _apiKey.isEmpty);
+
+    debugPrint('=== GEMINI REQUEST ===');
+    debugPrint('destination = $destination');
+    debugPrint('duration = $durationDays Hari');
+    debugPrint('budget = $budget (Pagu: $budgetCeiling)');
+    debugPrint('travelStyle = ${styles.join(', ')}');
+    debugPrint('mode = ${useCallable ? 'Firebase Callable Cloud Function' : (_backendUrl.isNotEmpty ? 'HTTP Backend Proxy' : 'Direct Gemini REST API')}');
+
+    if (useCallable) {
+      return await _generateViaCallableFunction(
+        destination: destination,
+        durationDays: durationDays,
+        dates: dates,
+        companion: companion,
+        peopleCount: peopleCount,
+        hasChildren: hasChildren,
+        hasElderly: hasElderly,
+        styles: styles,
+        budget: budget,
+        budgetCeiling: budgetCeiling,
+        pace: pace,
+        accommodation: accommodation,
+        specialNeeds: specialNeeds,
+      );
+    }
+
+    if (_backendUrl.isEmpty && _apiKey.isEmpty && !allowFallback) {
+      throw GeminiException(
+        'API Key / Backend Gemini belum dikonfigurasi. Di Production, Gemini diproses secara otomatis via Firebase Callable Function.',
+      );
+    }
+
     final httpClient = client ?? _injectedClient ?? http.Client();
     final bool shouldCloseClient = client == null && _injectedClient == null;
 
@@ -164,69 +267,136 @@ Pastikan list "schedule" mencakup tepat $durationDays elemen (Hari 1 hingga Hari
       specialNeeds: specialNeeds,
     );
 
-    final requestBody = jsonEncode({
-      'contents': [
-        {
-          'parts': [
-            {'text': promptText}
-          ]
-        }
-      ],
-      'generationConfig': {
-        'temperature': 0.7,
-        'responseMimeType': 'application/json',
-      }
-    });
-
-    final uri = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/$activeModel:generateContent?key=$_apiKey');
+    String? lastErrorMsg;
 
     try {
-      // Coba dipanggil hingga 2x jika ada kendala lonjakan sementara (503/timeout)
       for (int attempt = 1; attempt <= 2; attempt++) {
-        print('[GeminiService] Mengirim request ke Gemini API ($activeModel) [Percobaan $attempt] untuk $destination...');
-
         try {
-          final response = await httpClient.post(
-            uri,
-            headers: {'Content-Type': 'application/json'},
-            body: requestBody,
-          ).timeout(requestTimeout);
+          http.Response response;
 
-          if (response.statusCode == 200) {
-            final Map<String, dynamic> responseJson = jsonDecode(response.body);
-            final candidates = responseJson['candidates'] as List?;
+          if (_backendUrl.isNotEmpty) {
+            final proxyUri = _backendUrl.contains('/api/')
+                ? Uri.parse(_backendUrl)
+                : Uri.parse('$_backendUrl/api/generate-itinerary');
 
-            if (candidates != null && candidates.isNotEmpty) {
-              final firstCandidate = candidates.first as Map<String, dynamic>;
-              final content = firstCandidate['content'] as Map<String, dynamic>?;
-              final parts = content?['parts'] as List?;
+            debugPrint('[GeminiService] Mengirim request ke Backend Proxy ($proxyUri) [Percobaan $attempt]...');
 
-              if (parts != null && parts.isNotEmpty) {
-                String rawText = (parts.first as Map<String, dynamic>)['text'] ?? '';
-                rawText = rawText
-                    .replaceAll(RegExp(r'^```json\s*', multiLine: true), '')
-                    .replaceAll(RegExp(r'^```\s*', multiLine: true), '')
-                    .trim();
+            final proxyPayload = jsonEncode({
+              'destination': destination,
+              'durationDays': durationDays,
+              'dates': dates,
+              'companion': companion,
+              'peopleCount': peopleCount,
+              'hasChildren': hasChildren,
+              'hasElderly': hasElderly,
+              'styles': styles,
+              'budget': budget,
+              'budgetCeiling': budgetCeiling,
+              'pace': pace,
+              'accommodation': accommodation,
+              'specialNeeds': specialNeeds,
+            });
 
-                final dynamic parsedItinerary = jsonDecode(rawText);
-                if (parsedItinerary is Map<String, dynamic> &&
-                    parsedItinerary.containsKey('schedule')) {
-                  print('[GeminiService] Sukses menghasilkan itinerary terstruktur via $activeModel!');
-                  return _validateAndFormatItinerary(
-                    parsedItinerary,
-                    destination: destination,
-                    durationDays: durationDays,
-                    styles: styles,
-                  );
-                }
+            response = await httpClient.post(
+              proxyUri,
+              headers: {'Content-Type': 'application/json'},
+              body: proxyPayload,
+            ).timeout(requestTimeout);
+
+            if (response.statusCode == 200) {
+              final Map<String, dynamic> proxyJson = jsonDecode(response.body);
+              if (proxyJson['status'] == 'success' && proxyJson['data'] is Map<String, dynamic>) {
+                return Map<String, dynamic>.from(proxyJson['data'] as Map);
+              }
+              final dynamic directData = proxyJson['data'] ?? proxyJson;
+              if (directData is Map<String, dynamic> && directData.containsKey('schedule')) {
+                return _validateAndFormatItinerary(
+                  directData,
+                  destination: destination,
+                  durationDays: durationDays,
+                  styles: styles,
+                  sourceText: 'Google Gemini AI ($activeModel via Backend Proxy)',
+                );
               }
             }
           } else {
-            print('[GeminiService] HTTP Error ${response.statusCode} on $activeModel: ${response.body}');
+            final uri = Uri.parse(
+                'https://generativelanguage.googleapis.com/v1beta/models/$activeModel:generateContent?key=$_apiKey');
+
+            debugPrint('[GeminiService] Mengirim request ke Direct Gemini API ($activeModel) [Percobaan $attempt]...');
+
+            final requestBody = jsonEncode({
+              'contents': [
+                {
+                  'parts': [
+                    {'text': promptText}
+                  ]
+                }
+              ],
+              'generationConfig': {
+                'temperature': 0.7,
+                'responseMimeType': 'application/json',
+              }
+            });
+
+            response = await httpClient.post(
+              uri,
+              headers: {'Content-Type': 'application/json'},
+              body: requestBody,
+            ).timeout(requestTimeout);
+
+            debugPrint('=== GEMINI RESPONSE ===');
+            debugPrint('status = ${response.statusCode}');
+
+            if (response.statusCode == 200) {
+              final Map<String, dynamic> responseJson = jsonDecode(response.body);
+              final candidates = responseJson['candidates'] as List?;
+
+              if (candidates != null && candidates.isNotEmpty) {
+                final firstCandidate = candidates.first as Map<String, dynamic>;
+                final content = firstCandidate['content'] as Map<String, dynamic>?;
+                final parts = content?['parts'] as List?;
+
+                if (parts != null && parts.isNotEmpty) {
+                  String rawText = (parts.first as Map<String, dynamic>)['text'] ?? '';
+                  rawText = rawText
+                      .replaceAll(RegExp(r'^```json\s*', multiLine: true), '')
+                      .replaceAll(RegExp(r'^```\s*', multiLine: true), '')
+                      .trim();
+
+                  final dynamic parsedItinerary = jsonDecode(rawText);
+                  if (parsedItinerary is Map<String, dynamic> &&
+                      parsedItinerary.containsKey('schedule')) {
+                    debugPrint('[GeminiService] Sukses menghasilkan itinerary terstruktur via $activeModel!');
+                    return _validateAndFormatItinerary(
+                      parsedItinerary,
+                      destination: destination,
+                      durationDays: durationDays,
+                      styles: styles,
+                      sourceText: 'Google Gemini AI ($activeModel)',
+                    );
+                  }
+                }
+              }
+              lastErrorMsg = 'Format respon Gemini AI tidak valid atau tidak memiliki daftar jadwal.';
+            }
+          }
+
+          if (response.statusCode == 400) {
+            lastErrorMsg = 'Request ke Gemini AI tidak valid (HTTP 400). Mohon periksa kembali input perjalanan.';
+          } else if (response.statusCode == 401 || response.statusCode == 403) {
+            lastErrorMsg = 'Akses Gemini AI ditolak (HTTP ${response.statusCode}). API key tidak valid atau tidak diizinkan.';
+          } else if (response.statusCode == 429) {
+            lastErrorMsg = 'Batas kuota penggunaan (rate limit/quota) Gemini AI terlampaui (HTTP 429). Silakan coba beberapa saat lagi.';
+          } else if (response.statusCode >= 500) {
+            lastErrorMsg = 'Layanan Gemini AI sedang mengalami masalah server (HTTP ${response.statusCode}). Silakan coba lagi nanti.';
+          } else {
+            lastErrorMsg = 'Gemini API Error (HTTP ${response.statusCode}).';
           }
         } catch (err) {
-          print('[GeminiService] Percobaan $attempt pada $activeModel mengalami exception: $err');
+          if (err is GeminiException) rethrow;
+          lastErrorMsg = 'Koneksi ke Gemini AI terganggu atau timeout: $err';
+          debugPrint('[GeminiService] Percobaan $attempt error: $lastErrorMsg');
         }
 
         if (attempt < 2) {
@@ -239,16 +409,108 @@ Pastikan list "schedule" mencakup tepat $durationDays elemen (Hari 1 hingga Hari
       }
     }
 
-    // Fallback terstruktur spesifik tempat jika semua attempt API mengalami timeout/offline
-    print('[GeminiService] Menggunakan fallback local itinerary generator untuk $destination.');
-    return _generateFallbackItinerary(
-      destination: destination,
-      durationDays: durationDays,
-      styles: styles,
-      budget: budget,
-      pace: pace,
-      accommodation: accommodation,
-    );
+    if (allowFallback) {
+      debugPrint('[GeminiService] Menggunakan fallback local itinerary generator untuk $destination.');
+      return _generateFallbackItinerary(
+        destination: destination,
+        durationDays: durationDays,
+        styles: styles,
+        budget: budget,
+        pace: pace,
+        accommodation: accommodation,
+      );
+    }
+
+    throw GeminiException(lastErrorMsg ?? 'Gagal membuat itinerary AI. Silakan coba lagi.');
+  }
+
+  /// Eksekusi via Firebase Callable Cloud Function (Production Mode)
+  Future<Map<String, dynamic>> _generateViaCallableFunction({
+    required String destination,
+    required int durationDays,
+    required String dates,
+    required String companion,
+    required int peopleCount,
+    required bool hasChildren,
+    required bool hasElderly,
+    required List<String> styles,
+    required String budget,
+    required int budgetCeiling,
+    required String pace,
+    required String accommodation,
+    String? specialNeeds,
+  }) async {
+    try {
+      final functions = _injectedFunctions ?? FirebaseFunctions.instanceFor(region: functionsRegion);
+      final callable = functions.httpsCallable('generateItinerary');
+
+      final HttpsCallableResult result = await callable.call({
+        'destination': destination,
+        'durationDays': durationDays,
+        'dates': dates,
+        'companion': companion,
+        'peopleCount': peopleCount,
+        'hasChildren': hasChildren,
+        'hasElderly': hasElderly,
+        'styles': styles,
+        'budget': budget,
+        'budgetCeiling': budgetCeiling,
+        'pace': pace,
+        'accommodation': accommodation,
+        'specialNeeds': specialNeeds,
+      }).timeout(requestTimeout);
+
+      final dynamic data = result.data;
+      if (data is Map) {
+        final mapData = Map<String, dynamic>.from(data);
+        if (mapData['status'] == 'success' && mapData['data'] is Map) {
+          return _validateAndFormatItinerary(
+            Map<String, dynamic>.from(mapData['data'] as Map),
+            destination: destination,
+            durationDays: durationDays,
+            styles: styles,
+            sourceText: 'Google Gemini AI ($activeModel via Firebase Cloud Functions)',
+          );
+        }
+        if (mapData.containsKey('schedule')) {
+          return _validateAndFormatItinerary(
+            mapData,
+            destination: destination,
+            durationDays: durationDays,
+            styles: styles,
+            sourceText: 'Google Gemini AI ($activeModel via Firebase Cloud Functions)',
+          );
+        }
+      }
+      throw GeminiException('Respon dari server Gemini AI Planner tidak sesuai format expected.');
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint('[GeminiService] FirebaseFunctionsException: ${e.code} - ${e.message}');
+      String userMsg;
+      switch (e.code) {
+        case 'unauthenticated':
+          userMsg = 'Silakan login terlebih dahulu untuk menggunakan Gemini AI Planner.';
+          break;
+        case 'invalid-argument':
+          userMsg = e.message ?? 'Input parameter perjalanan tidak valid.';
+          break;
+        case 'resource-exhausted':
+          userMsg = 'Batas kuota penggunaan Gemini AI terlampaui. Silakan coba beberapa saat lagi.';
+          break;
+        case 'unavailable':
+          userMsg = 'Layanan server Gemini AI sedang tidak dapat dijangkau. Coba lagi nanti.';
+          break;
+        case 'permission-denied':
+          userMsg = 'Akses ke Gemini AI ditolak oleh server.';
+          break;
+        default:
+          userMsg = e.message ?? 'Gagal memproses rekomendasi AI via server.';
+      }
+      throw GeminiException(userMsg);
+    } catch (e) {
+      if (e is GeminiException) rethrow;
+      debugPrint('[GeminiService] Callable error: $e');
+      throw GeminiException('Koneksi ke server Gemini AI terganggu: ${e.toString()}');
+    }
   }
 
   /// Memvalidasi & memformat response agar sesuai skema UI Tride yang kaya detail
@@ -257,6 +519,7 @@ Pastikan list "schedule" mencakup tepat $durationDays elemen (Hari 1 hingga Hari
     required String destination,
     required int durationDays,
     required List<String> styles,
+    String? sourceText,
   }) {
     final stylesText = styles.join(' & ');
     final String durationText =
@@ -313,7 +576,8 @@ Pastikan list "schedule" mencakup tepat $durationDays elemen (Hari 1 hingga Hari
       'styles': parsed['styles']?.toString() ?? stylesText,
       'schedule': formattedSchedule,
       'isAiGenerated': true,
-      'source': 'Google Gemini AI ($activeModel)',
+      'generated_by': 'gemini',
+      'source': sourceText ?? 'Google Gemini AI ($activeModel)',
     };
   }
 
@@ -323,7 +587,7 @@ Pastikan list "schedule" mencakup tepat $durationDays elemen (Hari 1 hingga Hari
     return 'Flexi Time';
   }
 
-  /// Fallback local generator jika terjadi error API
+  /// Fallback local generator (Development ONLY jika allowFallback == true)
   Map<String, dynamic> _generateFallbackItinerary({
     required String destination,
     required int durationDays,
@@ -359,7 +623,6 @@ Pastikan list "schedule" mencakup tepat $durationDays elemen (Hari 1 hingga Hari
   }) {
     final lowerDest = destination.toLowerCase();
 
-    // Specific fallback places for Ciwidey / Kawah Putih / Bandung
     if (lowerDest.contains('ciwidey') || lowerDest.contains('kawah putih') || lowerDest.contains('bandung')) {
       if (day == 1) {
         return {
@@ -441,7 +704,6 @@ Pastikan list "schedule" mencakup tepat $durationDays elemen (Hari 1 hingga Hari
       }
     }
 
-    // Specific fallback places for Nusa Penida
     if (lowerDest.contains('penida')) {
       if (day == 1) {
         return {
@@ -509,7 +771,6 @@ Pastikan list "schedule" mencakup tepat $durationDays elemen (Hari 1 hingga Hari
       }
     }
 
-    // Specific fallback places for Bromo
     if (lowerDest.contains('bromo')) {
       if (day == 1) {
         return {
@@ -542,7 +803,6 @@ Pastikan list "schedule" mencakup tepat $durationDays elemen (Hari 1 hingga Hari
       }
     }
 
-    // Standard fallback with clear activities
     switch (day) {
       case 1:
         return {

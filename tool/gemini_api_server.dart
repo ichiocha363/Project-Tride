@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 import 'dart:convert';
 import 'dart:io';
 import 'package:project_tride/Services/gemini_service.dart';
@@ -43,7 +44,7 @@ void main(List<String> args) async {
   print('==================================================');
   print('🚀 Tride Gemini Backend API Server running on:');
   print('   http://localhost:$port/api/generate-itinerary');
-  print('   API Key: ${GeminiService.defaultApiKey.substring(0, 10)}...');
+  print('   API Key Status: ${GeminiService.instance.currentApiKey.isNotEmpty ? "[Configured]" : "[Environment Configured / Unconfigured]"}');
   print('==================================================');
 
   await for (HttpRequest request in server) {

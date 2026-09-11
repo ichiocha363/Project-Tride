@@ -1,1 +1,41 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"tride-project-92f17","appId":"1:965863799723:android:440db442ef3f5565eb70ee","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"tride-project-92f17","configurations":{"android":"1:965863799723:android:440db442ef3f5565eb70ee","web":"1:965863799723:web:567d04c16e07ea5deb70ee"}}}}}}
+{
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ],
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "tride-project-92f17",
+          "appId": "1:965863799723:android:440db442ef3f5565eb70ee",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "tride-project-92f17",
+          "configurations": {
+            "android": "1:965863799723:android:440db442ef3f5565eb70ee",
+            "web": "1:965863799723:web:567d04c16e07ea5deb70ee"
+          }
+        }
+      }
+    }
+  }
+}
