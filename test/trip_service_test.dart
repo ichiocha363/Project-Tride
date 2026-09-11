@@ -143,7 +143,7 @@ void main() {
     // ==================================================
     // 4. DELETE TRIP
     // ==================================================
-    test('4. Delete Trip: TripModel supports deletion identification via ID', () {
+    test('4. Delete Trip: TripModel supports deletion identification via ID and safe parameter checks', () async {
       final trip = TripModel(
         id: 'trip_to_delete_999',
         userId: 'user_uid_222',
@@ -155,9 +155,18 @@ void main() {
 
       expect(trip.id, 'trip_to_delete_999');
       expect(trip.userId, 'user_uid_222');
+
+      // Test deleteTrip dengan ID kosong
+      final emptyResult = await TripService.instance.deleteTrip('');
+      expect(emptyResult, false);
+
+      // Test deleteTrip tanpa authenticated user dan tanpa uid
+      final unauthResult = await TripService.instance.deleteTrip('trip_abc');
+      expect(unauthResult, false);
     });
 
     // ==================================================
+
     // 5. USER ISOLATION
     // ==================================================
     test('5. User Isolation: Trips are separated strictly by User ID in path schema', () {
