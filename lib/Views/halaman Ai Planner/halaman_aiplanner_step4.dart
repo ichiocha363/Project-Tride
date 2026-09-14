@@ -4,9 +4,10 @@ import 'package:project_tride/Database/destination_model.dart';
 import 'package:project_tride/Database/trip_model.dart';
 import 'package:project_tride/Models/user_model.dart';
 import 'package:project_tride/Services/destination_service.dart';
-import 'package:project_tride/Services/gemini_service.dart';
+import 'package:project_tride/Services/itinerary_planner_service.dart';
 import 'package:project_tride/Services/trip_service.dart';
 import '../halaman profile/halaman_profil.dart';
+import '../halaman_utama.dart';
 
 class HalamanAiPlanner extends StatefulWidget {
   final UserModel? user;
@@ -663,7 +664,7 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
     });
 
     try {
-      final itinerary = await GeminiService.instance.generateItinerary(
+      final itinerary = await ItineraryPlannerService.instance.generateItinerary(
         destination: _destination,
         durationDays: _durationDays,
         dates: _dates,
@@ -705,415 +706,482 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
   void _showItineraryDialog() {
     if (_generatedItinerary == null) return;
 
+    bool isSavingTrip = false;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.85,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Handle bar
-              Center(
-                child: Container(
-                  width: 44,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
+      builder: (modalContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            return Container(
+              height: MediaQuery.of(modalContext).size.height * 0.85,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
               ),
-              const SizedBox(height: 20),
-
-              // Title Header
-              Row(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF004AC6).withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.auto_awesome_rounded,
-                      color: Color(0xFF004AC6),
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _generatedItinerary!['isAiGenerated'] == true
-                              ? "✨ Dynamic Gemini AI Itinerary"
-                              : "📍 Template Katalog Tride",
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: _generatedItinerary!['isAiGenerated'] == true
-                                ? const Color(0xFF004AC6)
-                                : Colors.amber.shade900,
-                            letterSpacing: 0.6,
-                          ),
-                        ),
-                        Text(
-                          _generatedItinerary!['destination'],
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A),
-                            fontFamily: 'Plus Jakarta Sans',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Tags (Wrap to prevent pixel overflow)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  Chip(
-                    avatar: Icon(
-                      _generatedItinerary!['isAiGenerated'] == true
-                          ? Icons.psychology_rounded
-                          : Icons.bookmark_border_rounded,
-                      size: 16,
-                      color: const Color(0xFF004AC6),
-                    ),
-                    label: Text(
-                      _generatedItinerary!['source'] ?? 'Gemini AI Engine',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        color: Color(0xFF004AC6),
+                  // Handle bar
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    backgroundColor: const Color(0xFFE8EFFD),
-                    side: BorderSide.none,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                   ),
-                  Chip(
-                    avatar: const Icon(Icons.timer_outlined, size: 16),
-                    label: Text(_generatedItinerary!['duration']),
-                    backgroundColor: const Color(0xFFF1F5F9),
-                    side: BorderSide.none,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  Chip(
-                    avatar: const Icon(Icons.style_outlined, size: 16),
-                    label: Text(
-                      _generatedItinerary!['styles'],
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    backgroundColor: const Color(0xFFDBE1FF),
-                    side: BorderSide.none,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ],
-              ),
-              const Divider(height: 24),
+                  const SizedBox(height: 20),
 
-              // Timeline List
-              Expanded(
-                child: ListView.builder(
-                  itemCount: (_generatedItinerary!['schedule'] as List).length,
-                  itemBuilder: (context, index) {
-                    final dayItem = _generatedItinerary!['schedule'][index];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: GFAccordion(
-                        titleChild: Row(
+                  // Title Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF004AC6).withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.auto_awesome_rounded,
+                          color: Color(0xFF004AC6),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF004AC6),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                dayItem['day'],
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
+                            Text(
+                              _generatedItinerary!['isAiGenerated'] == true
+                                  ? "✨ Dynamic Gemini AI Itinerary"
+                                  : "📍 Local TRIDE Recommendation Engine",
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF004AC6),
+                                letterSpacing: 0.6,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                dayItem['title'],
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF0F172A),
-                                ),
+                            Text(
+                              _generatedItinerary!['destination'],
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F172A),
+                                fontFamily: 'Plus Jakarta Sans',
                               ),
                             ),
                           ],
                         ),
-                        contentChild: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 6),
-                            ...((dayItem['activities'] as List).map(
-                              (act) {
-                                final Map<String, dynamic> actMap = act is Map
-                                    ? Map<String, dynamic>.from(act)
-                                    : {
-                                        'time': 'Flexi Time',
-                                        'location': _destination,
-                                        'title': act.toString(),
-                                        'description': act.toString(),
-                                        'tips': null,
-                                      };
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
 
-                                final timeStr = actMap['time']?.toString() ?? 'Pagi';
-                                final locationStr = actMap['location']?.toString() ?? _destination;
-                                final titleStr = actMap['title']?.toString() ?? actMap['description']?.toString() ?? '';
-                                final descStr = actMap['description']?.toString() ?? titleStr;
-                                final tipsStr = actMap['tips']?.toString();
+                  // Tags (Wrap to prevent pixel overflow)
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      Chip(
+                        avatar: Icon(
+                          _generatedItinerary!['isAiGenerated'] == true
+                              ? Icons.psychology_rounded
+                              : Icons.bookmark_border_rounded,
+                          size: 16,
+                          color: const Color(0xFF004AC6),
+                        ),
+                        label: Text(
+                          _generatedItinerary!['source'] ?? 'Gemini AI Engine',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                            color: Color(0xFF004AC6),
+                          ),
+                        ),
+                        backgroundColor: const Color(0xFFE8EFFD),
+                        side: BorderSide.none,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      Chip(
+                        avatar: const Icon(Icons.timer_outlined, size: 16),
+                        label: Text(_generatedItinerary!['duration']),
+                        backgroundColor: const Color(0xFFF1F5F9),
+                        side: BorderSide.none,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      Chip(
+                        avatar: const Icon(Icons.style_outlined, size: 16),
+                        label: Text(
+                          _generatedItinerary!['styles'],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        backgroundColor: const Color(0xFFDBE1FF),
+                        side: BorderSide.none,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
 
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 10),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF8FAFC),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  // Timeline List
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: (_generatedItinerary!['schedule'] as List).length,
+                      itemBuilder: (context, index) {
+                        final dayItem = _generatedItinerary!['schedule'][index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: GFAccordion(
+                            titleChild: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      // Header Badges: Time & Location
-                                      Row(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF004AC6),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    dayItem['day'],
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    dayItem['title'],
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            contentChild: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 6),
+                                ...((dayItem['activities'] as List).map(
+                                  (act) {
+                                    final Map<String, dynamic> actMap = act is Map
+                                        ? Map<String, dynamic>.from(act)
+                                        : {
+                                            'time': 'Flexi Time',
+                                            'location': _destination,
+                                            'title': act.toString(),
+                                            'description': act.toString(),
+                                            'tips': null,
+                                          };
+
+                                    final timeStr = actMap['time']?.toString() ?? 'Pagi';
+                                    final locationStr = actMap['location']?.toString() ?? _destination;
+                                    final titleStr = actMap['title']?.toString() ?? actMap['description']?.toString() ?? '';
+                                    final descStr = actMap['description']?.toString() ?? titleStr;
+                                    final tipsStr = actMap['tips']?.toString();
+
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 10),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF8FAFC),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFDBE1FF),
-                                              borderRadius: BorderRadius.circular(6),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF004AC6)),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  timeStr,
-                                                  style: const TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Color(0xFF004AC6),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Row(
-                                              children: [
-                                                const Icon(Icons.location_on_rounded, size: 13, color: Color(0xFFBA1A1A)),
-                                                const SizedBox(width: 3),
-                                                Expanded(
-                                                  child: Text(
-                                                    locationStr,
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: Color(0xFF0F172A),
-                                                    ),
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      // Activity Title
-                                      Text(
-                                        titleStr,
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF0F172A),
-                                        ),
-                                      ),
-                                      if (descStr != titleStr && descStr.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          descStr,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Color(0xFF475569),
-                                            height: 1.35,
-                                          ),
-                                        ),
-                                      ],
-                                      if (tipsStr != null && tipsStr.trim().isNotEmpty) ...[
-                                        const SizedBox(height: 6),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFFFFBEB),
-                                            borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(color: const Color(0xFFFDE68A)),
-                                          ),
-                                          child: Row(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                          // Header Badges: Time & Location
+                                          Row(
                                             children: [
-                                              const Icon(Icons.lightbulb_rounded, size: 13, color: Color(0xFFD97706)),
-                                              const SizedBox(width: 5),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFDBE1FF),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF004AC6)),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      timeStr,
+                                                      style: const TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: Color(0xFF004AC6),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
                                               Expanded(
-                                                child: Text(
-                                                  tipsStr,
-                                                  style: const TextStyle(
-                                                    fontSize: 11,
-                                                    color: Color(0xFF92400E),
-                                                  ),
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(Icons.location_on_rounded, size: 13, color: Color(0xFFBA1A1A)),
+                                                    const SizedBox(width: 3),
+                                                    Expanded(
+                                                      child: Text(
+                                                        locationStr,
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.w700,
+                                                          color: Color(0xFF0F172A),
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                             ],
                                           ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                );
-                              },
-                            )),
-                          ],
-                        ),
-                        collapsedIcon: const Icon(
-                          Icons.keyboard_arrow_down,
-                          color: Color(0xFF004AC6),
-                        ),
-                        expandedIcon: const Icon(
-                          Icons.keyboard_arrow_up,
-                          color: Color(0xFF004AC6),
-                        ),
-                        titlePadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              // Action button (Save Trip via TripService)
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final now = DateTime.now();
-                    final startDt =
-                        _departureDate ?? now.add(const Duration(days: 7));
-                    final endDt =
-                        _returnDate ?? startDt.add(Duration(days: _durationDays));
-                    final startStr =
-                        "${startDt.year.toString().padLeft(4, '0')}-${startDt.month.toString().padLeft(2, '0')}-${startDt.day.toString().padLeft(2, '0')}";
-                    final endStr =
-                        "${endDt.year.toString().padLeft(4, '0')}-${endDt.month.toString().padLeft(2, '0')}-${endDt.day.toString().padLeft(2, '0')}";
-
-                    final newTrip = TripModel(
-                      userId: widget.user?.id?.toString() ??
-                          TripService.instance.currentUserId ??
-                          '',
-                      tripName: "Trip ke $_destination",
-                      destinationId: _destinationModel?.id,
-                      destinationName: _destination,
-                      destinationLocation: _destinationModel?.location,
-                      imageUrl: _destinationModel?.image,
-                      startDate: startStr,
-                      endDate: endStr,
-                      budget: _budgetCeiling,
-                      travelStyle: _styles.join(', '),
-                      notes:
-                          "Akomodasi: $_accommodation · Ritme: $_pace · Teman: $_companion ($_peopleCount Orang)",
-                      status: 'upcoming',
-                      createdAt: DateTime.now().toIso8601String(),
-                      itineraryDays: _generatedItinerary != null &&
-                              _generatedItinerary!['schedule'] is List
-                          ? List<Map<String, dynamic>>.from(
-                              (_generatedItinerary!['schedule'] as List).map(
-                                (e) => Map<String, dynamic>.from(e as Map),
-                              ),
-                            )
-                          : null,
-                    );
-
-                    await TripService.instance.createTrip(newTrip);
-
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Row(
-                            children: [
-                              Icon(
-                                Icons.bookmark_added_rounded,
-                                color: Colors.white,
-                              ),
-                              SizedBox(width: 10),
-                              Text("Rencana Perjalanan berhasil disimpan!"),
-                            ],
+                                          const SizedBox(height: 8),
+                                          // Activity Title
+                                          Text(
+                                            titleStr,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF0F172A),
+                                            ),
+                                          ),
+                                          if (descStr != titleStr && descStr.isNotEmpty) ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              descStr,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Color(0xFF475569),
+                                                height: 1.35,
+                                              ),
+                                            ),
+                                          ],
+                                          if (tipsStr != null && tipsStr.trim().isNotEmpty) ...[
+                                            const SizedBox(height: 6),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFFFFBEB),
+                                                borderRadius: BorderRadius.circular(6),
+                                                border: Border.all(color: const Color(0xFFFDE68A)),
+                                              ),
+                                              child: Row(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  const Icon(Icons.lightbulb_rounded, size: 13, color: Color(0xFFD97706)),
+                                                  const SizedBox(width: 5),
+                                                  Expanded(
+                                                    child: Text(
+                                                      tipsStr,
+                                                      style: const TextStyle(
+                                                        fontSize: 11,
+                                                        color: Color(0xFF92400E),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                )),
+                              ],
+                            ),
+                            collapsedIcon: const Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Color(0xFF004AC6),
+                            ),
+                            expandedIcon: const Icon(
+                              Icons.keyboard_arrow_up,
+                              color: Color(0xFF004AC6),
+                            ),
+                            titlePadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
                           ),
-                          backgroundColor: const Color(0xFF3E9C5D),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF004AC6),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                        );
+                      },
                     ),
                   ),
-                  child: const Text(
-                    "Simpan Rencana Perjalanan",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+
+                  // Action button (Save Trip via TripService)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: isSavingTrip
+                          ? null
+                          : () async {
+                              setSheetState(() {
+                                isSavingTrip = true;
+                              });
+
+                              try {
+                                final now = DateTime.now();
+                                final startDt =
+                                    _departureDate ?? now.add(const Duration(days: 7));
+                                final endDt =
+                                    _returnDate ?? startDt.add(Duration(days: _durationDays));
+                                final startStr =
+                                    "${startDt.year.toString().padLeft(4, '0')}-${startDt.month.toString().padLeft(2, '0')}-${startDt.day.toString().padLeft(2, '0')}";
+                                final endStr =
+                                    "${endDt.year.toString().padLeft(4, '0')}-${endDt.month.toString().padLeft(2, '0')}-${endDt.day.toString().padLeft(2, '0')}";
+
+                                final newTrip = TripModel(
+                                  userId: widget.user?.id?.toString() ??
+                                      TripService.instance.currentUserId ??
+                                      '',
+                                  tripName: "Trip ke $_destination",
+                                  destinationId: _destinationModel?.id,
+                                  destinationName: _destination,
+                                  destinationLocation: _destinationModel?.location,
+                                  imageUrl: _destinationModel?.image,
+                                  startDate: startStr,
+                                  endDate: endStr,
+                                  budget: _budgetCeiling,
+                                  travelStyle: _styles.join(', '),
+                                  notes:
+                                      "Akomodasi: $_accommodation · Ritme: $_pace · Teman: $_companion ($_peopleCount Orang)",
+                                  status: 'upcoming',
+                                  createdAt: DateTime.now().toIso8601String(),
+                                  itineraryDays: _generatedItinerary != null &&
+                                          _generatedItinerary!['schedule'] is List
+                                      ? List<Map<String, dynamic>>.from(
+                                          (_generatedItinerary!['schedule'] as List).map(
+                                            (e) => Map<String, dynamic>.from(e as Map),
+                                          ),
+                                        )
+                                      : null,
+                                );
+
+                                final saved = await TripService.instance.createTrip(newTrip);
+
+                                if (saved == null) {
+                                  throw Exception("Gagal menyimpan trip ke Firestore.");
+                                }
+
+                                if (modalContext.mounted) {
+                                  Navigator.pop(modalContext);
+
+                                  // Direct navigation to Home, clearing AI Planner navigation stack
+                                  Navigator.pushAndRemoveUntil(
+                                    modalContext,
+                                    MaterialPageRoute(
+                                      builder: (context) => HalamanUtama(
+                                        user: widget.user,
+                                        initialTab: 0,
+                                      ),
+                                    ),
+                                    (route) => false,
+                                  );
+
+                                  ScaffoldMessenger.of(modalContext).showSnackBar(
+                                    SnackBar(
+                                      content: const Row(
+                                        children: [
+                                          Icon(
+                                            Icons.bookmark_added_rounded,
+                                            color: Colors.white,
+                                          ),
+                                          SizedBox(width: 10),
+                                          Text("Rencana Perjalanan berhasil disimpan!"),
+                                        ],
+                                      ),
+                                      backgroundColor: const Color(0xFF3E9C5D),
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (modalContext.mounted) {
+                                  setSheetState(() {
+                                    isSavingTrip = false;
+                                  });
+
+                                  ScaffoldMessenger.of(modalContext).showSnackBar(
+                                    SnackBar(
+                                      content: Text("Gagal menyimpan trip. Coba lagi.\nDetail: $e"),
+                                      backgroundColor: const Color(0xFFBA1A1A),
+                                      behavior: SnackBarBehavior.floating,
+                                      duration: const Duration(seconds: 4),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF004AC6),
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: const Color(0xFF004AC6).withValues(alpha: 0.6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: isSavingTrip
+                          ? const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Text(
+                                  "Menyimpan...",
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            )
+                          : const Text(
+                              "Simpan Rencana Perjalanan",
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );

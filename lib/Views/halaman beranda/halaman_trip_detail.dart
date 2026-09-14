@@ -5,7 +5,6 @@ import 'package:project_tride/Models/user_model.dart';
 import 'package:project_tride/Services/trip_service.dart';
 import '../halaman profile/halaman_profil.dart';
 import '../halaman_utama.dart';
-import 'halaman_beranda.dart';
 
 class HalamanTripDetail extends StatefulWidget {
   final UserModel? user;
@@ -47,7 +46,6 @@ class HalamanTripDetail extends StatefulWidget {
 }
 
 class _HalamanTripDetailState extends State<HalamanTripDetail> {
-  late int _currentNavIndex;
   TripModel? _trip;
   late String _title;
   late String _dateRange;
@@ -73,7 +71,6 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
   @override
   void initState() {
     super.initState();
-    _currentNavIndex = widget.isPlanning ? 2 : 2;
     _trip = widget.trip;
     if (_trip != null) {
       _title = _trip!.tripName;
@@ -114,34 +111,6 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
     } catch (_) {
       return widget.countdown;
     }
-  }
-
-  void _onNavTapped(int index) {
-    if (index == _currentNavIndex) return;
-
-    if (index == 0) {
-      if (Navigator.canPop(context)) {
-        Navigator.popUntil(context, (route) => route.isFirst);
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                HalamanUtama(user: widget.user, initialTab: 0),
-          ),
-        );
-      }
-      return;
-    }
-
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            HalamanUtama(user: widget.user, initialTab: index),
-      ),
-      (route) => false,
-    );
   }
 
   List<Map<String, dynamic>> _getDefaultItinerary() {
@@ -316,7 +285,6 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavDock(),
     );
   }
 
@@ -337,7 +305,8 @@ class _HalamanTripDetailState extends State<HalamanTripDetail> {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => HalamanBeranda(user: widget.user),
+                        builder: (context) =>
+                            HalamanUtama(user: widget.user, initialTab: 0),
                       ),
                     );
                   }
@@ -2107,83 +2076,6 @@ Trip Name: $_title
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavDock() {
-    return Container(
-      height: 65,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(15),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(0, Icons.home_outlined, Icons.home_rounded, 'Home'),
-          _buildNavItem(
-            1,
-            Icons.explore_outlined,
-            Icons.explore_rounded,
-            'Explore',
-          ),
-          _buildNavItem(
-            2,
-            Icons.flight_takeoff_outlined,
-            Icons.flight_takeoff_rounded,
-            'Trips',
-          ),
-          _buildNavItem(
-            3,
-            Icons.account_balance_wallet_outlined,
-            Icons.account_balance_wallet_rounded,
-            'Budget',
-          ),
-          _buildNavItem(
-            4,
-            Icons.person_outline_rounded,
-            Icons.person_rounded,
-            'Profile',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-    int index,
-    IconData icon,
-    IconData activeIcon,
-    String label,
-  ) {
-    final isSelected = _currentNavIndex == index;
-    return InkWell(
-      onTap: () => _onNavTapped(index),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            isSelected ? activeIcon : icon,
-            color: isSelected ? primaryBlue : Colors.grey.shade400,
-            size: 24,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? primaryBlue : Colors.grey.shade600,
-            ),
-          ),
-        ],
       ),
     );
   }

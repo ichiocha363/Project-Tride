@@ -152,9 +152,9 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
 
   String _formatCurrency(int amount) {
     return amount.toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]}.',
-        );
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    );
   }
 
   int _parseCurrency(String text) {
@@ -242,7 +242,10 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
   Widget build(BuildContext context) {
     final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
     if (!isCurrent) {
-      return const Scaffold(backgroundColor: Color(0xFFF8FAFC), body: SizedBox.shrink());
+      return const Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        body: SizedBox.shrink(),
+      );
     }
 
     const Color bgCloud = Color(0xFFF8FAFC);
@@ -268,7 +271,11 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
             backgroundColor: Colors.white.withValues(alpha: 0.95),
             surfaceTintColor: Colors.transparent,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded, color: textNavy, size: 24),
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                color: textNavy,
+                size: 24,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
             titleSpacing: 0,
@@ -304,8 +311,7 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            HalamanProfil(user: widget.user),
+                        builder: (context) => HalamanProfil(user: widget.user),
                       ),
                     );
                   },
@@ -314,10 +320,7 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                     height: 36,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: primaryFixed,
-                        width: 1.5,
-                      ),
+                      border: Border.all(color: primaryFixed, width: 1.5),
                       color: primaryFixed,
                     ),
                     child: const Icon(
@@ -398,7 +401,9 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                   // Intro Badge & Header
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: primaryFixed,
                       borderRadius: BorderRadius.circular(20),
@@ -451,8 +456,11 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.payments_rounded,
-                              color: primaryBlue, size: 20),
+                          Icon(
+                            Icons.payments_rounded,
+                            color: primaryBlue,
+                            size: 20,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             "Level Budget",
@@ -496,24 +504,27 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 180),
                               padding: const EdgeInsets.symmetric(
-                                  vertical: 12, horizontal: 6),
+                                vertical: 12,
+                                horizontal: 6,
+                              ),
                               decoration: BoxDecoration(
-                                color:
-                                    isSelected ? primaryBlue : Colors.white,
+                                color: isSelected ? primaryBlue : Colors.white,
                                 borderRadius: BorderRadius.circular(14),
                                 boxShadow: isSelected
                                     ? [
                                         BoxShadow(
-                                          color: primaryBlue
-                                              .withValues(alpha: 0.25),
+                                          color: primaryBlue.withValues(
+                                            alpha: 0.25,
+                                          ),
                                           blurRadius: 8,
                                           offset: const Offset(0, 3),
                                         ),
                                       ]
                                     : [
                                         BoxShadow(
-                                          color: Colors.black
-                                              .withValues(alpha: 0.03),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.03,
+                                          ),
                                           blurRadius: 5,
                                           offset: const Offset(0, 2),
                                         ),
@@ -530,11 +541,13 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                                         height: 32,
                                         decoration: BoxDecoration(
                                           color: isSelected
-                                              ? Colors.white
-                                                  .withValues(alpha: 0.2)
+                                              ? Colors.white.withValues(
+                                                  alpha: 0.2,
+                                                )
                                               : surfaceContainer,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                         child: Icon(
                                           icon,
@@ -562,8 +575,9 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                                         style: TextStyle(
                                           fontSize: 9,
                                           color: isSelected
-                                              ? Colors.white
-                                                  .withValues(alpha: 0.8)
+                                              ? Colors.white.withValues(
+                                                  alpha: 0.8,
+                                                )
                                               : textSlate,
                                           height: 1.15,
                                         ),
@@ -636,7 +650,9 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                         const SizedBox(height: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 2),
+                            horizontal: 10,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: surfaceLow,
                             borderRadius: BorderRadius.circular(10),
@@ -683,8 +699,11 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.speed_rounded,
-                              color: primaryBlue, size: 20),
+                          Icon(
+                            Icons.speed_rounded,
+                            color: primaryBlue,
+                            size: 20,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             "Ritme Perjalanan",
@@ -736,16 +755,18 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                               boxShadow: isSelected
                                   ? [
                                       BoxShadow(
-                                        color: primaryBlue
-                                            .withValues(alpha: 0.25),
+                                        color: primaryBlue.withValues(
+                                          alpha: 0.25,
+                                        ),
                                         blurRadius: 6,
                                         offset: const Offset(0, 2),
                                       ),
                                     ]
                                   : [
                                       BoxShadow(
-                                        color: Colors.black
-                                            .withValues(alpha: 0.03),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.03,
+                                        ),
                                         blurRadius: 4,
                                         offset: const Offset(0, 1),
                                       ),
@@ -797,8 +818,9 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                                               fontSize: 10,
                                               fontWeight: FontWeight.w600,
                                               color: isSelected
-                                                  ? Colors.white
-                                                      .withValues(alpha: 0.85)
+                                                  ? Colors.white.withValues(
+                                                      alpha: 0.85,
+                                                    )
                                                   : textSlate,
                                             ),
                                           ),
@@ -810,8 +832,9 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                                         style: TextStyle(
                                           fontSize: 10,
                                           color: isSelected
-                                              ? Colors.white
-                                                  .withValues(alpha: 0.85)
+                                              ? Colors.white.withValues(
+                                                  alpha: 0.85,
+                                                )
                                               : textSlate,
                                         ),
                                         maxLines: 1,
@@ -847,8 +870,11 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.cottage_rounded,
-                              color: primaryBlue, size: 20),
+                          Icon(
+                            Icons.cottage_rounded,
+                            color: primaryBlue,
+                            size: 20,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             "Preferensi Akomodasi",
@@ -863,7 +889,9 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFC4E7FF),
                           borderRadius: BorderRadius.circular(10),
@@ -886,17 +914,25 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                     children: [
                       Row(
                         children: [
-                          Expanded(child: _buildAccommodationCard(_accommodations[0])),
+                          Expanded(
+                            child: _buildAccommodationCard(_accommodations[0]),
+                          ),
                           const SizedBox(width: 10),
-                          Expanded(child: _buildAccommodationCard(_accommodations[1])),
+                          Expanded(
+                            child: _buildAccommodationCard(_accommodations[1]),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          Expanded(child: _buildAccommodationCard(_accommodations[2])),
+                          Expanded(
+                            child: _buildAccommodationCard(_accommodations[2]),
+                          ),
                           const SizedBox(width: 10),
-                          Expanded(child: _buildAccommodationCard(_accommodations[3])),
+                          Expanded(
+                            child: _buildAccommodationCard(_accommodations[3]),
+                          ),
                         ],
                       ),
                     ],
@@ -953,8 +989,7 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                                   ),
                                 ),
                                 const TextSpan(
-                                  text:
-                                      " menghemat 22% waktu mobilitas.",
+                                  text: " menghemat 22% waktu mobilitas.",
                                 ),
                               ],
                             ),
@@ -969,20 +1004,6 @@ class _HalamanAiPlannerState extends State<HalamanAiPlanner> {
                   // Bottom Navigation: Back + Lanjut
                   Row(
                     children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: surfaceLow,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_back_rounded,
-                              color: textNavy),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
                       Expanded(
                         child: SizedBox(
                           height: 48,

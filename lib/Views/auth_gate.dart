@@ -121,16 +121,18 @@ class _AuthGateState extends State<AuthGate>
 
     // Navigasi ke Halaman Utama jika loggedIn & data user valid, jika tidak ke Login
     if (isLoggedIn && currentUser != null) {
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
           builder: (context) => HalamanUtama(user: currentUser!),
         ),
+        (route) => false,
       );
     } else {
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const HalamanLogin()),
+        (route) => false,
       );
     }
   }

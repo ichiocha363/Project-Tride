@@ -159,6 +159,71 @@ void main() {
         expect(find.byType(BackButton), findsNothing);
       }, _TestHttpOverrides());
     });
+
+    testWidgets('6. Register -> Login -> Home flow resets navigation stack, ensuring Home is root with NO back arrow', (tester) async {
+      await HttpOverrides.runWithHttpOverrides(() async {
+        late BuildContext savedContext;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) {
+                savedContext = context;
+                return const Scaffold(body: Text('Login Screen Mock'));
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // 1. Simulate tap Register from Login (pushReplacement to Register)
+        Navigator.pushReplacement(
+          savedContext,
+          MaterialPageRoute(
+            builder: (context) {
+              savedContext = context;
+              return const Scaffold(body: Text('Register Screen Mock'));
+            },
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Register Screen Mock'), findsOneWidget);
+
+        // 2. Simulate complete Register (pushReplacement to Login)
+        Navigator.pushReplacement(
+          savedContext,
+          MaterialPageRoute(
+            builder: (context) {
+              savedContext = context;
+              return const Scaffold(body: Text('Login Screen Mock 2'));
+            },
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Login Screen Mock 2'), findsOneWidget);
+
+        // 3. Simulate Login Success (pushAndRemoveUntil to HalamanUtama)
+        Navigator.pushAndRemoveUntil(
+          savedContext,
+          MaterialPageRoute(
+            builder: (context) => HalamanUtama(user: testUser),
+          ),
+          (route) => false,
+        );
+        await tester.pumpAndSettle();
+
+        // Verify HalamanUtama is displayed
+        expect(find.byType(HalamanUtama), findsOneWidget);
+        expect(find.text('Trips'), findsOneWidget);
+
+        // Verify NO back button exists
+        expect(find.byType(BackButton), findsNothing);
+        expect(find.byIcon(Icons.arrow_back), findsNothing);
+        expect(find.byIcon(Icons.arrow_back_ios_new_rounded), findsNothing);
+
+        // Verify Navigator stack has no route to pop
+        expect(Navigator.canPop(tester.element(find.byType(HalamanUtama))), isFalse);
+      }, _TestHttpOverrides());
+    });
   });
 }
 

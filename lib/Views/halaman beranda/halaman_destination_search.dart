@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project_tride/Constants/app_colors.dart';
 import 'package:project_tride/Models/user_model.dart';
-import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman_utama.dart';
 import 'halaman_destination_detail.dart';
 
@@ -17,7 +16,6 @@ class HalamanDestinationSearch extends StatefulWidget {
 
 class _HalamanDestinationSearchState extends State<HalamanDestinationSearch> {
   final TextEditingController _searchController = TextEditingController();
-  final int _currentNavIndex = 0;
   String _searchQuery = '';
 
   final List<String> _recentSearches = [
@@ -87,34 +85,6 @@ class _HalamanDestinationSearchState extends State<HalamanDestinationSearch> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _onNavTapped(int index) {
-    if (index == _currentNavIndex) return;
-
-    if (index == 0) {
-      if (Navigator.canPop(context)) {
-        Navigator.popUntil(context, (route) => route.isFirst);
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                HalamanUtama(user: widget.user, initialTab: 0),
-          ),
-        );
-      }
-      return;
-    }
-
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            HalamanUtama(user: widget.user, initialTab: index),
-      ),
-      (route) => false,
-    );
   }
 
   @override
@@ -463,11 +433,6 @@ class _HalamanDestinationSearchState extends State<HalamanDestinationSearch> {
             ),
           ],
         ),
-      ),
-      // Integrated Floating Bottom Navigation Bar
-      bottomNavigationBar: CustomFloatingNavBar(
-        selectedIndex: _currentNavIndex,
-        onDestinationSelected: _onNavTapped,
       ),
     );
   }

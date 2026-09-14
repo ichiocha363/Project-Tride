@@ -47,11 +47,15 @@ class TripService {
 
   /// Mendapatkan referensi subcollection `trips` untuk UID tertentu (User Isolation)
   CollectionReference<Map<String, dynamic>>? _getTripsRef([String? uid]) {
-    final targetUid = uid ?? currentUserId;
-    if (targetUid == null || targetUid.trim().isEmpty) {
+    try {
+      final targetUid = uid ?? currentUserId;
+      if (targetUid == null || targetUid.trim().isEmpty) {
+        return null;
+      }
+      return _firestore.collection('users').doc(targetUid.trim()).collection('trips');
+    } catch (_) {
       return null;
     }
-    return _firestore.collection('users').doc(targetUid.trim()).collection('trips');
   }
 
   // ==================================================

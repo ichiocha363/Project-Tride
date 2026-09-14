@@ -63,11 +63,12 @@ class _HalamanLoginState extends State<HalamanLogin> {
             ),
           ),
         );
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
             builder: (context) => HalamanUtama(user: result.userModel!),
           ),
+          (route) => false,
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -634,7 +635,7 @@ class _HalamanLoginState extends State<HalamanLogin> {
                                 ),
                                 GestureDetector(
                                   onTap: () {
-                                    Navigator.push(
+                                    Navigator.pushReplacement(
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) =>

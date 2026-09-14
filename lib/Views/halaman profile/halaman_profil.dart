@@ -91,7 +91,9 @@ class _HalamanProfilState extends State<HalamanProfil>
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Text(
             'Pratinjau Foto Profil',
             textAlign: TextAlign.center,
@@ -141,10 +143,7 @@ class _HalamanProfilState extends State<HalamanProfil>
               const Text(
                 'Apakah Anda yakin ingin menggunakan foto ini sebagai foto profil?',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                ),
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -168,7 +167,10 @@ class _HalamanProfilState extends State<HalamanProfil>
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
               ),
               child: const Text(
                 'Gunakan Foto',
@@ -224,7 +226,9 @@ class _HalamanProfilState extends State<HalamanProfil>
 
       setState(() => _isUploadingImage = true);
 
-      final downloadUrl = await ProfileService.instance.uploadProfileImage(file);
+      final downloadUrl = await ProfileService.instance.uploadProfileImage(
+        file,
+      );
 
       if (mounted) {
         setState(() {
@@ -424,9 +428,17 @@ class _HalamanProfilState extends State<HalamanProfil>
   @override
   Widget build(BuildContext context) {
     final currentAuthUser = _getSafeAuthUser();
-    final userEmail = currentAuthUser?.email ?? _profile?.email ?? widget.user?.email ?? '';
-    final userName = _profile?.name ?? widget.user?.nama ?? currentAuthUser?.displayName ?? (userEmail.isNotEmpty ? userEmail.split('@').first : 'Pengguna Tride');
-    final userAvatar = _profile?.profileImage ?? widget.user?.profileImage ?? currentAuthUser?.photoURL;
+    final userEmail =
+        currentAuthUser?.email ?? _profile?.email ?? widget.user?.email ?? '';
+    final userName =
+        _profile?.name ??
+        widget.user?.nama ??
+        currentAuthUser?.displayName ??
+        (userEmail.isNotEmpty ? userEmail.split('@').first : 'Pengguna Tride');
+    final userAvatar =
+        _profile?.profileImage ??
+        widget.user?.profileImage ??
+        currentAuthUser?.photoURL;
     final membershipSubtitle = _getMembershipSubtitle();
 
     return Scaffold(
@@ -554,7 +566,9 @@ class _HalamanProfilState extends State<HalamanProfil>
                             bottom: 2,
                             right: 2,
                             child: GestureDetector(
-                              onTap: _isUploadingImage ? null : _pickAndUploadAvatar,
+                              onTap: _isUploadingImage
+                                  ? null
+                                  : _pickAndUploadAvatar,
                               child: Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: const BoxDecoration(
@@ -790,7 +804,9 @@ class _HalamanProfilState extends State<HalamanProfil>
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.nature.withValues(alpha: 0.1),
+                                    color: AppColors.nature.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Text(
@@ -829,7 +845,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                     icon: const Icon(
                       Icons.logout_rounded,
                       size: 18,
-                      color: AppColors.textSecondary,
+                      color: Color.fromARGB(255, 255, 0, 0),
                     ),
                     label: const Text(
                       "SIGN OUT",
@@ -837,7 +853,7 @@ class _HalamanProfilState extends State<HalamanProfil>
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.1,
-                        color: AppColors.textSecondary,
+                        color: Color.fromARGB(255, 255, 11, 11),
                       ),
                     ),
                   ),
@@ -989,10 +1005,7 @@ class _HalamanProfilState extends State<HalamanProfil>
             const Text(
               "Mulai buat rencana liburan impianmu bersama asisten cerdas Tride.",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
@@ -1021,7 +1034,10 @@ class _HalamanProfilState extends State<HalamanProfil>
 
     return Column(
       children: latestTrips.map((trip) {
-        final destination = trip.destinationName ?? trip.destinationLocation ?? 'Destinasi Wisata';
+        final destination =
+            trip.destinationName ??
+            trip.destinationLocation ??
+            'Destinasi Wisata';
         final dates = "${trip.startDate} - ${trip.endDate}";
         final imageUrl = trip.imageUrl;
 
@@ -1072,11 +1088,17 @@ class _HalamanProfilState extends State<HalamanProfil>
                               imageUrl,
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => const Center(
-                                child: Icon(Icons.landscape_rounded, color: AppColors.primaryDeep),
+                                child: Icon(
+                                  Icons.landscape_rounded,
+                                  color: AppColors.primaryDeep,
+                                ),
                               ),
                             )
                           : const Center(
-                              child: Icon(Icons.landscape_rounded, color: AppColors.primaryDeep),
+                              child: Icon(
+                                Icons.landscape_rounded,
+                                color: AppColors.primaryDeep,
+                              ),
                             ),
                     ),
                   ),
@@ -1098,7 +1120,11 @@ class _HalamanProfilState extends State<HalamanProfil>
                         const SizedBox(height: 3),
                         Row(
                           children: [
-                            const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+                            const Icon(
+                              Icons.location_on_outlined,
+                              size: 14,
+                              color: AppColors.textSecondary,
+                            ),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -1116,7 +1142,11 @@ class _HalamanProfilState extends State<HalamanProfil>
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.primaryDeep),
+                            const Icon(
+                              Icons.calendar_today_outlined,
+                              size: 13,
+                              color: AppColors.primaryDeep,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               dates,
@@ -1131,7 +1161,10 @@ class _HalamanProfilState extends State<HalamanProfil>
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right_rounded, color: AppColors.textLight),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.textLight,
+                  ),
                 ],
               ),
             ),

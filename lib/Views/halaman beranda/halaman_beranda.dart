@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:card_swiper/card_swiper.dart';
 import 'package:flutter/material.dart';
 import 'package:getwidget/getwidget.dart';
@@ -8,14 +10,15 @@ import 'package:project_tride/Models/user_model.dart';
 import 'package:project_tride/Services/destination_service.dart';
 import 'package:project_tride/Services/saved_places_service.dart';
 import 'package:project_tride/Services/trip_service.dart';
+
 import '../../Widgets/custom_floating_nav_bar.dart';
 import '../halaman Ai Planner/halaman_aiplanner_step1.dart';
 import '../halaman budget/halaman_budget.dart';
 import '../halaman explore/halaman_jelajah.dart';
 import '../halaman profile/halaman_profil.dart';
 import '../halaman profile/halaman_saved_places.dart';
-import 'halaman_destination_search.dart';
 import 'halaman_destination_detail.dart';
+import 'halaman_destination_search.dart';
 import 'halaman_trip_detail.dart';
 
 class HalamanBeranda extends StatefulWidget {
@@ -42,6 +45,7 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
   final TextEditingController _searchController = TextEditingController();
   TripModel? _upcomingTrip;
   bool _isLoadingTrip = true;
+  StreamSubscription<TripModel?>? _upcomingTripSubscription;
 
   final List<Map<String, dynamic>> _popularDestinations = [
     {
@@ -136,6 +140,21 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
     _loadFavorites();
     _loadPopularDestinations();
     _loadUpcomingTrip();
+    _listenUpcomingTripStream();
+  }
+
+  void _listenUpcomingTripStream() {
+    _upcomingTripSubscription?.cancel();
+    _upcomingTripSubscription = TripService.instance
+        .streamUpcomingTrip(uid: widget.user?.id?.toString())
+        .listen((trip) {
+          if (mounted) {
+            setState(() {
+              _upcomingTrip = trip;
+              _isLoadingTrip = false;
+            });
+          }
+        });
   }
 
   Future<void> _loadUpcomingTrip() async {
@@ -201,6 +220,7 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
 
   @override
   void dispose() {
+    _upcomingTripSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -339,8 +359,8 @@ class _HalamanBerandaState extends State<HalamanBeranda> {
                     radius: 19,
                     shape: GFAvatarShape.circle,
                     child: ClipOval(
-                      child: Image.network(
-                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop',
+                      child: Image.asset(
+                        'assets/image/playstore.png',
                         width: 38,
                         height: 38,
                         fit: BoxFit.cover,
