@@ -235,9 +235,15 @@ export const generateItinerary = onCall(
     }
 
     // 3. Secret API Key Resolution
-    const apiKey = geminiApiKey.value();
+    let apiKey = process.env.GEMINI_API_KEY || "";
+    try {
+      if (!apiKey && typeof geminiApiKey.value === "function") {
+        apiKey = geminiApiKey.value() || "";
+      }
+    } catch (_) {}
+
     if (!apiKey || apiKey.trim().length === 0) {
-      console.error("[generateItinerary] Secret GEMINI_API_KEY belum dikonfigurasi di Google Secret Manager.");
+      console.error("[generateItinerary] Secret GEMINI_API_KEY belum dikonfigurasi di Secret Manager atau environment variable.");
       throw new HttpsError(
         "internal",
         "INTERNAL_ERROR: Konfigurasi server Gemini AI belum siap (Secret key missing)."
@@ -294,6 +300,8 @@ export const generateItinerary = onCall(
         throw new HttpsError("invalid-argument", "INVALID_INPUT: Parameter request Gemini AI tidak valid.");
       } else if (responseStatusCode === 401 || responseStatusCode === 403) {
         throw new HttpsError("permission-denied", "AI_UNAVAILABLE: Otentikasi server Gemini AI ditolak.");
+      } else if (responseStatusCode === 404) {
+        throw new HttpsError("not-found", `MODEL_NOT_FOUND: Model Gemini API '${ACTIVE_MODEL}' tidak ditemukan (HTTP 404).`);
       } else if (responseStatusCode === 429) {
         throw new HttpsError(
           "resource-exhausted",

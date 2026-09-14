@@ -223,9 +223,15 @@ exports.generateItinerary = (0, https_1.onCall)({
         throw new https_1.HttpsError("invalid-argument", "INVALID_INPUT: Catatan khusus terlalu panjang (maksimum 500 karakter).");
     }
     // 3. Secret API Key Resolution
-    const apiKey = geminiApiKey.value();
+    let apiKey = process.env.GEMINI_API_KEY || "";
+    try {
+        if (!apiKey && typeof geminiApiKey.value === "function") {
+            apiKey = geminiApiKey.value() || "";
+        }
+    }
+    catch (_) { }
     if (!apiKey || apiKey.trim().length === 0) {
-        console.error("[generateItinerary] Secret GEMINI_API_KEY belum dikonfigurasi di Google Secret Manager.");
+        console.error("[generateItinerary] Secret GEMINI_API_KEY belum dikonfigurasi di Secret Manager atau environment variable.");
         throw new https_1.HttpsError("internal", "INTERNAL_ERROR: Konfigurasi server Gemini AI belum siap (Secret key missing).");
     }
     // 4. Build Prompt & Call Gemini REST API
@@ -270,6 +276,9 @@ exports.generateItinerary = (0, https_1.onCall)({
         }
         else if (responseStatusCode === 401 || responseStatusCode === 403) {
             throw new https_1.HttpsError("permission-denied", "AI_UNAVAILABLE: Otentikasi server Gemini AI ditolak.");
+        }
+        else if (responseStatusCode === 404) {
+            throw new https_1.HttpsError("not-found", `MODEL_NOT_FOUND: Model Gemini API '${ACTIVE_MODEL}' tidak ditemukan (HTTP 404).`);
         }
         else if (responseStatusCode === 429) {
             throw new https_1.HttpsError("resource-exhausted", "RATE_LIMITED: Batas kuota penggunaan Gemini AI terlampaui. Silakan coba lagi nanti.");

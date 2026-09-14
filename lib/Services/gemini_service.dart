@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:project_tride/Services/itinerary_planner_provider.dart';
 
 /// Exception khusus untuk penanganan error pada Gemini Service
 class GeminiException implements Exception {
@@ -15,7 +16,7 @@ class GeminiException implements Exception {
 
 /// Service backend untuk menghasilkan rekomendasi itinerary perjalanan
 /// menggunakan Google Gemini AI API (model resmi: gemini-2.5-flash via Firebase Cloud Functions).
-class GeminiService {
+class GeminiService implements ItineraryPlannerProvider {
   final http.Client? _injectedClient;
   final FirebaseFunctions? _injectedFunctions;
   String _apiKey;
@@ -192,6 +193,7 @@ Pastikan list "schedule" mencakup tepat $durationDays elemen (Hari 1 hingga Hari
   }
 
   /// Menghasilkan itinerary perjalanan berbasis Gemini AI.
+  @override
   Future<Map<String, dynamic>> generateItinerary({
     required String destination,
     required int durationDays,
@@ -484,7 +486,7 @@ Pastikan list "schedule" mencakup tepat $durationDays elemen (Hari 1 hingga Hari
       }
       throw GeminiException('Respon dari server Gemini AI Planner tidak sesuai format expected.');
     } on FirebaseFunctionsException catch (e) {
-      debugPrint('[GeminiService] FirebaseFunctionsException: ${e.code} - ${e.message}');
+      debugPrint('[GeminiService] FirebaseFunctionsException [${e.code}]: ${e.message} - ${e.details}');
       String userMsg;
       switch (e.code) {
         case 'unauthenticated':
@@ -492,6 +494,10 @@ Pastikan list "schedule" mencakup tepat $durationDays elemen (Hari 1 hingga Hari
           break;
         case 'invalid-argument':
           userMsg = e.message ?? 'Input parameter perjalanan tidak valid.';
+          break;
+        case 'not-found':
+          userMsg =
+              'Cloud Function generateItinerary tidak ditemukan di region $functionsRegion pada project tride-project-92f17. Pastikan Cloud Function sudah ter-deploy.';
           break;
         case 'resource-exhausted':
           userMsg = 'Batas kuota penggunaan Gemini AI terlampaui. Silakan coba beberapa saat lagi.';
@@ -503,7 +509,9 @@ Pastikan list "schedule" mencakup tepat $durationDays elemen (Hari 1 hingga Hari
           userMsg = 'Akses ke Gemini AI ditolak oleh server.';
           break;
         default:
-          userMsg = e.message ?? 'Gagal memproses rekomendasi AI via server.';
+          userMsg = (e.message != null && e.message != 'NOT_FOUND' && e.message!.isNotEmpty)
+              ? e.message!
+              : 'Gagal memproses rekomendasi AI via server (Code: ${e.code}).';
       }
       throw GeminiException(userMsg);
     } catch (e) {
